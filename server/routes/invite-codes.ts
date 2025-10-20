@@ -51,7 +51,7 @@ function checkRateLimit(ip: string): boolean {
 
 // Validation schemas
 const validateCodeSchema = z.object({
-  code: z.string().min(8).max(8)
+  code: z.string().min(1).max(50) // Support any reasonable invite code length
 });
 
 
