@@ -1,0 +1,14 @@
+{
+  "mcp.servers": {
+    "slabfy": {
+      "command": "node",
+      "args": [
+        "/home/runner/workspace/mcp-server/build/index.js"
+      ],
+      "env": {
+        "SUPABASE_URL": "${env:SUPABASE_URL}",
+        "SUPABASE_SERVICE_KEY": "${env:SUPABASE_SERVICE_KEY}"
+      }
+    }
+  }
+}

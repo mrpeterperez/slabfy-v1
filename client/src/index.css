@@ -1,0 +1,285 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Simple FOUC prevention */
+html {
+  background-color: #FAF9F6;
+}
+
+html.dark {
+  background-color: #131c22;
+}
+
+/* Global layout clamp: prevent horizontal page shift/scroll chaining */
+html, body, #root {
+  width: 100%;
+  max-width: 100vw;
+  /* Lock document flow so only app panes scroll */
+  height: 100%;
+  overflow-y: hidden; /* no page-level vertical scroll */
+  overflow-x: hidden;
+  overscroll-behavior-x: none; /* keep horizontal overscroll inside inner scrollers */
+  overscroll-behavior-y: none; /* prevent vertical scroll chaining on the page */
+  scrollbar-gutter: stable both-edges; /* avoid layout jump when scrollbars appear */
+}
+
+/* 🌞 Light Mode */
+:root {
+  /* Your custom tokens */
+  --primary-container: 60 29% 100%;
+  /* F9F9F4 - containers */
+  --background: 45 28% 97%;
+  /* #FAF9F6*/
+  --foreground: 0 0% 9%;
+  /* #17181a */
+  --primary: 222 100% 60%;
+  /* #2a6dff */
+  --primary-foreground: 0 0% 100%;
+  /* #ffffff */
+  --secondary: 0 0% 9%;
+  /* #17181a */
+  --secondary-foreground: 0 0% 87%;
+  /* #dfdfdf */
+  --accent: 210 100% 94%;
+  /* #dbeafe */
+  --accent-foreground: 218 89% 60%;
+  /* #3b76f6 */
+  --accent-variant: 222 88% 85%;
+  /* #b0c4f9 */
+  --accent-variant-foreground: 218 89% 60%;
+  /* #3b76f6 */
+  --card: 0 0% 100%;
+  /* #f9f9f4 */
+  --card-foreground: 0 0% 9%;
+  /* #17181a */
+  --popover: 48 33% 98%;
+  /* #f9f9f4 */
+  --popover-foreground: 0 0% 9%;
+  /* #17181a */
+  --muted: 0 0% 100%;
+  /* #dfdfdf */
+  --muted-foreground: 0 0% 40%;
+  /* #3d3d3d */
+  --border: 0 0% 87%;
+  /* #dddddd */
+  --input: 0 0% 100%;
+  /* #dddddd */
+  --ring: 222 100% 60%;
+  /* #2a6dff */
+  --destructive: 0 67% 55%;
+  /* #d32f2f */
+  --destructive-foreground: 0 0% 87%;
+  /* #dfdfdf */
+  --success: 132 92% 38%;
+  /* #08ba0d */
+  --success-foreground: 0 0% 87%;
+  /* #dfdfdf */
+  --warning: 39 100% 50%;
+  /* #ffa000 */
+  --warning-foreground: 0 0% 9%;
+  /* #17181a */
+
+  /* Brand tokens (semantic blue) */
+  --brand: 214 100% 59%;
+  --brand-foreground: 0 0% 100%;
+  --brand-subtle: 214 100% 59% / 0.10;
+
+  /* Simplified ownership colors */
+  --blue-primary: 214 100% 59%;
+  /* #3b82f6 - blue solid */
+  --blue-background: 214 100% 59% / 0.1;
+  /* #3b82f6 with 10% opacity */
+  --purple-primary: 262 83% 58%;
+  /* #a855f7 - purple solid */
+  --purple-background: 262 83% 58% / 0.1;
+  /* #a855f7 with 10% opacity */
+
+  /* Additional standard shadcn tokens */
+  --radius: 0.5rem;
+
+  /* shadcn defaults mapped to your custom values */
+  --background-subtle: 48 33% 98%;
+  /* Same as card */
+  --destructive-subtle: 0 85% 97%;
+  --success-subtle: 132 92% 95%;
+  --warning-subtle: 39 100% 97%;
+
+  /* For shadcn component compatibility */
+  --primary-subtle: 222 100% 95%;
+  --secondary-subtle: 0 0% 96%;
+  --accent-subtle: 210 100% 97%;
+
+  /* Centralized overlay/hover alphas */
+  --hover-muted-alpha: 0.25; /* used for muted hover overlays in light mode */
+  --glass-alpha: 0.75; /* translucent surface alpha for backdrop-filter use in light mode */
+  /* Skeleton placeholders */
+  --skeleton-alpha: 0.18; /* light mode skeleton opacity over muted-foreground */
+}
+
+/* 🌚 Dark Mode */
+.dark {
+  /* Your custom tokens */
+  --primary-button: linear-gradient(170deg, hsl(223, 100%, 61.8%) -19.23%, hsl(220, 83%, 53.7%) 125.81%);
+  --primary-container: 203 29% 12%;
+  /* #162128 */
+  --background: 204 28% 10%;
+  /* #131c22 */
+  --foreground: 0 0% 87%;
+  /* #dfdfdf */
+  --primary: 222 100% 60%;
+  /* #2a6dff */
+  --primary-foreground: 0 0% 100%;
+  /* #ffffff */
+  --secondary: 0 0% 87%;
+  /* #dfdfdf */
+  --secondary-foreground: 0 0% 9%;
+  /* #17181a */
+  --accent: 210 100% 94%;
+  /* #dbeafe */
+  --accent-foreground: 218 89% 60%;
+  /* #3b76f6 */
+  --accent-variant: 222 88% 85%;
+  /* #b0c4f9 */
+  --accent-variant-foreground: 218 89% 60%;
+  /* #3b76f6 */
+  --card: 204 29% 11%;
+  /* #151f26*/
+  --card-foreground: 0 0% 87%;
+  /* #dfdfdf */
+  --popover: 210 10% 18%;
+  /* #262e33 */
+  --popover-foreground: 0 0% 87%;
+  /* #dfdfdf */
+  --muted: 203 29% 12%;
+  /* #162128 */
+  --muted-foreground: 0 0% 60%;
+  /* #17181a */
+  --border: 203 14% 22%;
+  /* #313b41 */
+  --input: 204 29% 11%;
+  /* #313b41 */
+  --ring: 222 100% 60%;
+  /* #2a6dff */
+  --destructive: 0 84% 69%;
+  /* #ef5350 */
+  --destructive-foreground: 0 0% 8%;
+  /* #141414 */
+  --success: 132 92% 38%;
+  /* #08ba0d */
+  --success-foreground: 0 0% 8%;
+  /* #17181a */
+  --warning: 42 100% 55%;
+  /* #ffb300 */
+  --warning-foreground: 0 0% 8%;
+  /* #17181a */
+
+  /* Brand tokens (semantic blue) */
+  --brand: 214 100% 59%;
+  --brand-foreground: 0 0% 8%;
+  --brand-subtle: 214 100% 59% / 0.15;
+
+  /* Simplified ownership colors - Dark mode */
+  --blue-primary: 214 100% 59%;
+  /* #3b82f6 - blue solid (same as light) */
+  --blue-background: 214 100% 59% / 0.15;
+  /* #3b82f6 with 15% opacity for dark mode */
+  --purple-primary: 262 83% 70%;
+  /* #c084fc - purple lighter for dark */
+  --purple-background: 262 83% 70% / 0.15;
+  /* #c084fc with 15% opacity for dark mode */
+
+  /* Additional standard shadcn tokens */
+  --radius: 0.5rem;
+
+  /* shadcn defaults mapped to your custom values */
+  --background-subtle: 210 10% 15%;
+  --destructive-subtle: 0 84% 20%;
+  --success-subtle: 132 92% 20%;
+  --warning-subtle: 42 100% 20%;
+
+  /* For shadcn component compatibility */
+  --primary-subtle: 222 100% 20%;
+  --secondary-subtle: 0 0% 20%;
+  --accent-subtle: 210 100% 20%;
+
+  /* Centralized overlay/hover alphas */
+  --hover-muted-alpha: 0.35; /* slightly stronger in dark mode for contrast */
+  --glass-alpha: 0.75; /* translucent surface alpha for backdrop-filter use in dark mode */
+  /* Skeleton placeholders */
+  --skeleton-alpha: 0.24; /* dark mode skeleton opacity over muted-foreground */
+}
+
+*,
+::before,
+::after {
+  box-sizing: border-box;
+  border-width: 0;
+  border-style: solid;
+  border-color: hsl(var(--border));
+}
+
+/* Utility classes for background colors */
+@layer utilities {
+  /* Token-driven hover overlay for muted */
+  .bg-hover-muted {
+    background-color: hsl(var(--muted) / var(--hover-muted-alpha));
+  }
+
+  /* Token-driven translucent surface background (pairs well with backdrop-filter) */
+  .bg-glass {
+    background-color: hsl(var(--background) / var(--glass-alpha));
+  }
+
+  /* Token-driven skeleton placeholder */
+  .bg-skeleton {
+    background-color: hsl(var(--muted-foreground) / var(--skeleton-alpha));
+  }
+
+  /* Brand link utility */
+  .link-brand {
+    color: hsl(var(--brand));
+  }
+  .link-brand:hover {
+    color: hsl(var(--brand));
+  }
+
+  .bg-primary-container {
+    background-color: hsl(var(--primary-container));
+  }
+
+  .text-primary-container {
+    color: hsl(var(--primary-container));
+  }
+
+  .bg-accent-variant {
+    background-color: hsl(var(--accent-variant));
+  }
+
+  .text-accent-variant {
+    color: hsl(var(--accent-variant));
+  }
+
+  .bg-accent-variant-foreground {
+    background-color: hsl(var(--accent-variant-foreground));
+  }
+
+  .text-accent-variant-foreground {
+    color: hsl(var(--accent-variant-foreground));
+  }
+
+  /* Hide scrollbars while keeping functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    /* Internet Explorer 10+ */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+    /* Safari and Chrome */
+  }
+
+  /* Add any other custom utility classes here */
+}

@@ -1,0 +1,16 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Prevent committing .env files and obvious secrets
+if git diff --cached --name-only | grep -E '^\.env(\.|$)|\.env$' >/dev/null; then
+  echo "[HUSKY] Blocking commit: .env file detected in staged changes." >&2
+  exit 1
+fi
+
+# Basic secret grep (fast):
+if git diff --cached | grep -E 'SUPABASE_SERVICE_KEY|GROQ_API_KEY|PRICING_API_KEY|DATABASE_URL' >/dev/null; then
+  echo "[HUSKY] Potential secret detected in staged changes. Please remove before committing." >&2
+  exit 1
+fi
+
+exit 0

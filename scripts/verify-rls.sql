@@ -1,0 +1,1 @@
+-- MOVED: RLS verification queries now live at supabase/archive/verify-rls.sql

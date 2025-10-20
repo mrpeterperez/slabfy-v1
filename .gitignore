@@ -1,0 +1,16 @@
+node_modules
+dist
+.DS_Store
+server/public
+vite.config.ts.*
+*.tar.gz
+
+# Environment variables (NEVER commit these!)
+.env*
+!.env.example
+!.env.local.example
+
+# Test scripts with potential credentials
+scripts/test-*.mjs
+scripts/test-*.js
+**/test-credentials.json

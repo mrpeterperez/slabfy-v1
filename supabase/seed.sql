@@ -1,0 +1,2 @@
+-- MOVED: For ad-hoc seed scripts, use supabase/archive/seed.sql
+-- For reproducible data, prefer migration-based inserts or application seeders.

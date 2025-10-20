@@ -1,0 +1,11 @@
+{
+  "version": "3",
+  "packages": {
+    "specifiers": {
+      "https://deno.land/std@0.190.0/http/server.ts": "https://deno.land/std@0.190.0/http/server.ts"
+    }
+  },
+  "remote": {
+    "https://deno.land/std@0.190.0/http/server.ts": "abc123def456..."
+  }
+}
