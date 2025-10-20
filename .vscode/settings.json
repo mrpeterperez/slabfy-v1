@@ -10,5 +10,20 @@
         "SUPABASE_SERVICE_KEY": "${env:SUPABASE_SERVICE_KEY}"
       }
     }
+  },
+  "github.copilot.enable": {
+    "*": true,
+    "markdown": false,
+    "md": false,
+    "mdx": false
+  },
+  "github.copilot.chat.autoScaffoldReadme": false,
+  "github.copilot.chat.enabled": false,
+  "github.copilot.inlineSuggest.enable": true,
+  "files.watcherExclude": {
+    "**/*.md": true
+  },
+  "files.associations": {
+    "*.md": "plaintext"
   }
 }
