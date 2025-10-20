@@ -9,7 +9,6 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { AppShell } from "@/components/layout/app-shell";
 import { ProtectedRoute } from "@/components/protected-route";
-import { InviteGate } from "../../features/invite-system";
 import { ErrorBoundary } from "@/components/error-boundary";
 import MobileBottomNav from "@/components/layout/mobile-bottom-nav";
 import { useToast } from "@/hooks/use-toast";
@@ -307,11 +306,7 @@ function App() {
         <Route path="/check-email" component={CheckEmail} />
         <Route path="/reset-password" component={ResetPassword} />
   <Route path="/email-confirmed" component={EmailConfirmed} />
-  <Route path="/oauth-callback">
-          <InviteGate>
-            <OAuthCallback />
-          </InviteGate>
-  </Route>
+  <Route path="/oauth-callback" component={OAuthCallback} />
   <Route path="/signup-complete" component={SignupRedirect} />
   <Route path="/dashboard">
           <ProtectedRoute>
