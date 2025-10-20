@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/components/auth-provider";
-import { InviteGate } from "../../../features/invite-system";
+import { InviteGate } from "@/features/invite-system";
 
 export default function OAuthCallback() {
   const [_, setLocation] = useLocation();
