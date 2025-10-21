@@ -377,22 +377,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        // Check for email not confirmed error
+        // Check for email not confirmed error - let the signin page handle the UI
         if (error.message && error.message.toLowerCase().includes('email not confirmed')) {
-          toast({
-            title: "Email not confirmed",
-            description: "Please check your email and click the confirmation link to verify your account.",
-            variant: "destructive",
-          });
-          throw error; // Throw so signin page can handle it
+          throw error; // Throw so signin page can handle it with resend UI
         }
         
+        // For other errors, show toast and throw
         toast({
           title: "Sign in failed",
           description: error.message,
           variant: "destructive",
         });
-        throw error; // Throw so page can handle if needed
+        throw error;
       }
 
       if (data.user) {
@@ -416,12 +412,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
+      // Don't swallow errors here – let callers (e.g. SignIn page) render specific UI
       console.error("Unexpected error during sign in:", error);
-      toast({
-        title: "An unexpected error occurred",
-        description: "Please try again later.",
-        variant: "destructive",
-      });
+      // Show a generic toast only for unknown errors; callers may still handle specifics
+      if (!(error as any)?.message?.toLowerCase?.().includes?.('email not confirmed')) {
+        toast({
+          title: "An unexpected error occurred",
+          description: "Please try again later.",
+          variant: "destructive",
+        });
+      }
+      // Re-throw so the caller can react (e.g., show resend panel)
+      throw error;
     }
   };
 
