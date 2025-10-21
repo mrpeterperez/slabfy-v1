@@ -6,11 +6,50 @@ vite.config.ts.*
 *.tar.gz
 
 # Environment variables (NEVER commit these!)
-.env*
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env*.local
+*.env
+**/.env*
 !.env.example
 !.env.local.example
+
+# Secrets and credentials
+**/secrets/
+**/credentials/
+**/*secret*.json
+**/*credential*.json
+**/*password*.txt
+**/*key*.pem
+**/*.key
+**/*.pem
 
 # Test scripts with potential credentials
 scripts/test-*.mjs
 scripts/test-*.js
 **/test-credentials.json
+
+# Railway/deployment configs with secrets
+.railway/
+railway.json
+
+# IDE
+.idea/
+.vscode/settings.json
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db

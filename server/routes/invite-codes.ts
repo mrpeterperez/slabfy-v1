@@ -107,9 +107,9 @@ router.post('/validate', async (req: Request, res: Response) => {
       });
     }
 
+    // ✅ SECURITY: Only return validation status, never expose internal code details
     res.json({
-      isValid: true,
-      code: inviteCode
+      isValid: true
     });
 
   } catch (error) {

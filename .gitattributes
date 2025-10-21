@@ -1,0 +1,23 @@
+# 🔒 Security: Prevent .env files from being committed
+.env* export-ignore
+*.env export-ignore
+**/test-credentials.json export-ignore
+
+# Ensure line endings are consistent
+* text=auto
+*.js text eol=lf
+*.ts text eol=lf
+*.jsx text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
