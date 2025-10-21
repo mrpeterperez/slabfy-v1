@@ -33,8 +33,12 @@ export default function EmailConfirmed() {
           if (user.email_confirmed_at) {
             setIsConfirmed(true);
             
-            // Try to create/sync user in our database
+            // Try to create/sync user in our database with invite code
             try {
+              // Get the invite code from localStorage (stored during signup)
+              const inviteCode = localStorage.getItem('slabfy_invite_code') || 
+                                sessionStorage.getItem('slabfy_invite_code');
+              
               const response = await fetch('/api/auth/sync', {
                 method: 'POST',
                 headers: {
@@ -43,14 +47,25 @@ export default function EmailConfirmed() {
                 body: JSON.stringify({
                   id: user.id,
                   email: user.email,
+                  inviteCode, // Include invite code for new user creation
                 }),
               });
 
-              if (!response.ok) {
-                console.log("User sync failed, but email confirmation succeeded");
+              if (response.ok) {
+                // Clear invite code after successful sync
+                localStorage.removeItem('slabfy_invite_code');
+                sessionStorage.removeItem('slabfy_invite_code');
+                console.log("User synced successfully to database");
+              } else {
+                const errorData = await response.json();
+                console.error("User sync failed:", errorData);
+                setError(`Account setup failed: ${errorData.error || 'Please contact support'}`);
+                setIsConfirmed(false);
               }
             } catch (syncError) {
               console.error("User sync error:", syncError);
+              setError("Failed to complete account setup. Please contact support.");
+              setIsConfirmed(false);
             }
 
             toast({

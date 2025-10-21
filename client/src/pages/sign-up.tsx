@@ -86,22 +86,9 @@ export default function SignUp() {
       const result: SignUpResult = await signUp(data.email, data.password, "/onboarding/step1");
 
       if (result.status === 'success') {
-        // 🔒 SECURITY: Mark invite code as used after successful signup
-        const inviteCode = sessionStorage.getItem('slabfy_invite_code');
-        if (inviteCode && result.userId) {
-          try {
-            await fetch('/api/invite-codes/use', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ code: inviteCode }),
-            });
-            // Clear invite code from session after use
-            sessionStorage.removeItem('slabfy_invite_code');
-          } catch (err) {
-            console.error('Failed to mark invite code as used:', err);
-            // Non-critical error, don't block signup flow
-          }
-        }
+        // DON'T mark invite code as used here - it will be marked when email is confirmed
+        // The invite code is stored in localStorage and will be used by /api/auth/sync
+        // after email confirmation to create the user in our database
         
         setLocation("/check-email");
       } else if (result.status === 'exists') {
