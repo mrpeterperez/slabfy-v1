@@ -114,13 +114,14 @@ export function InviteGate({ children, onValidCode }: InviteGateProps) {
               <Input
                 id="invite-code"
                 type="text"
-                placeholder="PETER-XXXXXXXX"
+                placeholder="Enter your invite code"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                 onKeyPress={handleKeyPress}
                 disabled={isVerifying}
                 className="uppercase"
                 autoFocus
+                maxLength={50}
               />
             </div>
           </div>
