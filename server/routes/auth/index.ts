@@ -103,17 +103,25 @@ router.post("/sync", async (req: Request, res: Response) => {
         });
       }
 
-      user = await storage.createUser({ id, email });
+      // Use a transaction to ensure both user creation and invite code update succeed or rollback together
+      await db.transaction(async (tx) => {
+        // Create the user first
+        const { users } = await import("@shared/schema");
+        const [createdUser] = await tx.insert(users).values({ id, email }).returning();
+        user = createdUser;
 
-      const { inviteCodes: inviteCodesTable } = await import("@shared/schema");
-      await db
-        .update(inviteCodesTable)
-        .set({
-          currentUses: (codeRow.currentUses ?? 0) + 1,
-          usedBy: id,
-          usedAt: new Date(),
-        })
-        .where(eq(inviteCodesTable.id, codeRow.id));
+        // Then mark the invite code as used
+        const { inviteCodes: inviteCodesTable } = await import("@shared/schema");
+        await tx
+          .update(inviteCodesTable)
+          .set({
+            currentUses: (codeRow.currentUses ?? 0) + 1,
+            usedBy: id,
+            usedAt: new Date(),
+          })
+          .where(eq(inviteCodesTable.id, codeRow.id));
+      });
+
       console.log(`Successfully created new user with invite: ${id}`);
     }
 
