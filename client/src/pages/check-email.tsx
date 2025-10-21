@@ -3,11 +3,14 @@ import { useLocation } from "wouter";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Mail, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/components/auth-provider";
 
 // Accept route props but don't use them
 export default function CheckEmail(_props: any) {
   const [_, setLocation] = useLocation();
   const [email, setEmail] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+  const { resendConfirmationEmail } = useAuth();
 
   useEffect(() => {
     // Get the stored email from localStorage
@@ -17,12 +20,27 @@ export default function CheckEmail(_props: any) {
     }
   }, []);
 
+  useEffect(() => {
+    // Cooldown timer
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
+
   const handleBackToSignIn = () => {
     setLocation("/signin");
   };
 
   const handleTrySignUp = () => {
     setLocation("/signup");
+  };
+
+  const handleResendEmail = async () => {
+    if (!email || cooldown > 0) return;
+    
+    await resendConfirmationEmail(email);
+    setCooldown(60); // 60 second cooldown
   };
 
   return (
@@ -36,20 +54,32 @@ export default function CheckEmail(_props: any) {
             Check Your Email
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            We've sent a confirmation link to{" "}
+            We sent a confirmation link to{" "}
             {email && <span className="font-medium text-foreground">{email}</span>}
           </p>
           <p className="mt-3 text-sm text-muted-foreground">
-            Click the link in the email to activate your account. You may need to check your spam folder.
+            Click the link in your email to activate your account and get started.
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Don't see it? Check your spam or junk folder.
           </p>
         </div>
       </div>
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm space-y-4">
         <Button 
-          onClick={handleBackToSignIn}
+          onClick={handleResendEmail}
           className="w-full"
           variant="default"
+          disabled={cooldown > 0}
+        >
+          {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend Confirmation Email"}
+        </Button>
+        
+        <Button 
+          onClick={handleBackToSignIn}
+          className="w-full"
+          variant="outline"
         >
           Back to Sign In
         </Button>
@@ -65,14 +95,7 @@ export default function CheckEmail(_props: any) {
         
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
-            Didn't receive the email?{' '}
-            <Button
-              variant="link"
-              className="p-0 h-auto font-semibold"
-              onClick={handleTrySignUp}
-            >
-              Sign up again
-            </Button>
+            Didn't receive the email? Check your spam folder or click resend above.
           </p>
         </div>
       </div>

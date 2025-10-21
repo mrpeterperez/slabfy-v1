@@ -33,7 +33,9 @@ export default function SignIn() {
   usePageTitle('Sign In');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const { signIn, user, resetPassword } = useAuth();
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const { signIn, user, resetPassword, resendConfirmationEmail } = useAuth();
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -52,14 +54,41 @@ export default function SignIn() {
     }
   }, [user, setLocation]);
 
+  useEffect(() => {
+    // Cooldown timer for resend
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
   const onSubmit = async (data: SignInFormValues) => {
     setIsSubmitting(true);
+    setUnconfirmedEmail(null); // Clear any previous error
     try {
       await signIn(data.email, data.password);
       setLocation("/dashboard");
+    } catch (error: any) {
+      // Check for email not confirmed error
+      if (error?.message?.toLowerCase().includes('email not confirmed') || 
+          error?.message?.toLowerCase().includes('email confirmation')) {
+        setUnconfirmedEmail(data.email);
+        toast({
+          title: "Email not confirmed",
+          description: "Please check your email and click the confirmation link. You can resend it below.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!unconfirmedEmail || resendCooldown > 0) return;
+    
+    await resendConfirmationEmail(unconfirmedEmail);
+    setResendCooldown(60); // 60 second cooldown
   };
 
   const handleForgotPassword = async () => {
@@ -164,6 +193,26 @@ export default function SignIn() {
                   onClick={handleForgotPassword}
                 >
                   Send Reset Email
+                </Button>
+              </div>
+            )}
+
+            {unconfirmedEmail && (
+              <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md">
+                <p className="text-sm text-destructive font-medium mb-2">
+                  Email Not Confirmed
+                </p>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Please check your email for the confirmation link, or click below to resend.
+                </p>
+                <Button 
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleResendConfirmation}
+                  disabled={resendCooldown > 0}
+                >
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Confirmation Email"}
                 </Button>
               </div>
             )}

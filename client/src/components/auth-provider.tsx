@@ -21,6 +21,7 @@ interface AuthContextProps {
   signIn: (email: string, password: string, redirectUrl?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  resendConfirmationEmail: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: (userId: string) => Promise<void>;
 }
@@ -376,12 +377,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
+        // Check for email not confirmed error
+        if (error.message && error.message.toLowerCase().includes('email not confirmed')) {
+          toast({
+            title: "Email not confirmed",
+            description: "Please check your email and click the confirmation link to verify your account.",
+            variant: "destructive",
+          });
+          throw error; // Throw so signin page can handle it
+        }
+        
         toast({
           title: "Sign in failed",
           description: error.message,
           variant: "destructive",
         });
-        return;
+        throw error; // Throw so page can handle if needed
       }
 
       if (data.user) {
@@ -500,6 +511,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  /**
+   * Resend confirmation email
+   */
+  const resendConfirmationEmail = async (email: string) => {
+    try {
+      if (USE_DATABASE_AUTH) {
+        toast({
+          title: "Resend not supported",
+          description: "Email confirmation is only available with Supabase authentication.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/email-confirmed`
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Resend failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Confirmation email sent",
+        description: "Check your email inbox (and spam folder) for the confirmation link.",
+      });
+    } catch (error) {
+      console.error("Unexpected error during email resend:", error);
+      toast({
+        title: "An unexpected error occurred",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const signOut = async () => {
     try {
       if (USE_DATABASE_AUTH) {
@@ -564,6 +620,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithGoogle,
     signOut,
     resetPassword,
+    resendConfirmationEmail,
     refreshUser,
   };
 
