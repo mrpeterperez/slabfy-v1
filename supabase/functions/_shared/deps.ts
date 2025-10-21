@@ -9,7 +9,6 @@ export { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 const allowedOrigins = (Deno.env.get("CORS_ORIGINS")?.split(",").map(s => s.trim()).filter(Boolean) ?? [
   "https://slabfy.com",
   "https://www.slabfy.com",
-  "https://slabfy.replit.app",
 ]);
 
 export function getCorsHeaders(origin?: string) {

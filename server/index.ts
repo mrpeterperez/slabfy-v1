@@ -43,13 +43,12 @@ app.use((req, res, next) => {
 const corsOptions: cors.CorsOptions = {
   origin: isProduction 
     ? [
-        'https://slabfy.replit.app',
         'https://www.slabfy.com',
         'https://slabfy.com',
         'https://staging.slabfy.com'
       ]
     : function (origin, callback) {
-        // In development, allow all origins including Replit preview domains
+        // In development, allow all origins
         callback(null, true);
       },
   credentials: true,
@@ -99,8 +98,6 @@ if (isProduction) {
 
 // Security headers with Helmet
 app.use(helmet({
-  // Keep CSP enabled in production, but include Replit dev/preview domains so
-  // Vite's client/react-refresh and the PWA manifest can load when testing there.
   contentSecurityPolicy: isProduction
     ? {
         directives: {
@@ -110,10 +107,6 @@ app.use(helmet({
             "'unsafe-inline'",
             "'unsafe-eval'",
             "https://cdn.jsdelivr.net",
-            // Replit dev/redirect hosts used in external preview wrappers
-            "https://replit.com",
-            "https://*.replit.dev",
-            "https://*.replit.app",
           ],
           styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           fontSrc: ["'self'", "https://fonts.gstatic.com"],
@@ -123,16 +116,9 @@ app.use(helmet({
             "https://api.supabase.io",
             "https://*.supabase.co",
             "wss://*.supabase.co",
-            // Allow Vite HMR + Replit preview sockets/fetches
-            "https://replit.com",
-            "https://*.replit.dev",
-            "wss://*.replit.dev",
-            "https://*.replit.app",
           ],
-          // Allow service workers/workbox and Vite HMR workers in Replit
-          workerSrc: ["'self'", "blob:", "https://*.replit.dev"],
-          // Explicitly allow the web app manifest to load via Replit wrappers
-          manifestSrc: ["'self'", "https://replit.com", "https://*.replit.dev", "https://*.replit.app"],
+          workerSrc: ["'self'", "blob:"],
+          manifestSrc: ["'self'"],
         },
       }
     : false, // Disable CSP in development to avoid blocking issues

@@ -36,20 +36,20 @@ import dashboardRoutes from "./routes/dashboard";
 import storefrontRoutes from "./routes/storefront";
 
 export async function registerRoutes(app: Express): Promise<void> {
-  // Swagger UI setup
-  app.use('/api-docs', authenticateSwaggerUI, swaggerUi.serve, swaggerUi.setup(specs, {
-    explorer: true,
-    swaggerOptions: {
-      persistAuthorization: true,
-      displayRequestDuration: true,
-      docExpansion: 'list',
-      filter: true,
-      showExtensions: true,
-    },
-    customSiteTitle: "Slabfy API Documentation",
-    customCss: '.swagger-ui .topbar { display: none }',
-    customfavIcon: "/favicon.ico",
-  }));
+  // Swagger UI setup - TEMPORARILY DISABLED due to YAML parsing errors
+  // app.use('/api-docs', authenticateSwaggerUI, swaggerUi.serve, swaggerUi.setup(specs, {
+  //   explorer: true,
+  //   swaggerOptions: {
+  //     persistAuthorization: true,
+  //     displayRequestDuration: true,
+  //     docExpansion: 'list',
+  //     filter: true,
+  //     showExtensions: true,
+  //   },
+  //   customSiteTitle: "Slabfy API Documentation",
+  //   customCss: '.swagger-ui .topbar { display: none }',
+  //   customfavIcon: "/favicon.ico",
+  // }));
 
   // Mount all route modules
   app.use('/api/user/preferences', preferencesRouter);

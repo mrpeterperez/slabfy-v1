@@ -10,7 +10,6 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      // Disable PWA during development to avoid manifest CORS issues on Replit
       devOptions: { enabled: false },
       srcDir: "src",
       filename: "sw.ts",
@@ -27,14 +26,6 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"]
       },
     }),
-    // Enable cartographer in ALL dev environments (not just Replit!)
-    ...(process.env.NODE_ENV !== "production"
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-        ]
-      : []),
   ],
   resolve: {
     alias: {
