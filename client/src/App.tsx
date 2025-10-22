@@ -5,7 +5,7 @@
 // Dependencies: wouter, react, @/components
 
 import { Route, Switch } from "wouter";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { AppShell } from "@/components/layout/app-shell";
 import { ProtectedRoute } from "@/components/protected-route";
@@ -270,44 +270,64 @@ function RedirectToSignup() {
 }
 
 function App() {
+  const [path] = useLocation();
+  
+  // Routes that should render WITHOUT AppShell (no sidebar, no breadcrumbs)
+  const isPublicRoute = useMemo(() => {
+    if (typeof path !== "string") return false;
+    return (
+      path === "/" ||
+      path.startsWith("/signin") ||
+      path.startsWith("/signup") ||
+      path.startsWith("/check-email") ||
+      path.startsWith("/reset-password") ||
+      path.startsWith("/email-confirmed") ||
+      path.startsWith("/oauth-callback") ||
+      path.startsWith("/signup-complete") ||
+      path.startsWith("/storefront/")
+    );
+  }, [path]);
+
   return (
     <ErrorBoundary>
-      <AppShell>
-        <Suspense fallback={<RouteLoader />}>
-          <Switch>
-        {/* Public Storefront - No authentication required */}
-        {/* Dummy preview route - MUST come before dynamic routes */}
-        <Route path="/storefront/preview">
-          <PublicStorefrontPage />
-        </Route>
-        
-        {/* Event-based storefronts (multi-event architecture) */}
-        <Route path="/storefront/:eventId/preview" component={PublicEventStorefrontPage} />
-        <Route path="/storefront/:eventId" component={PublicEventStorefrontPage} />
-        
-        {/* Legacy user-based storefront (kept for backward compatibility) */}
-        <Route path="/storefront/user/:userId">
-          <PublicStorefrontPage />
-        </Route>
-        <Route path="/storefront/:userId/asset/:assetId">
-          <PublicStorefrontAssetDetail />
-        </Route>
-        <Route path="/storefront/:userId/cart">
-          <StorefrontWithCart>
-            <StorefrontCart />
-          </StorefrontWithCart>
-        </Route>
-        <Route path="/storefront/:userId/checkout">
-          <StorefrontCheckoutRoute />
-        </Route>
-        
-        <Route path="/signin" component={SignIn} />
-        <Route path="/signup" component={SignUp} />
-        <Route path="/check-email" component={CheckEmail} />
-        <Route path="/reset-password" component={ResetPassword} />
-  <Route path="/email-confirmed" component={EmailConfirmed} />
-  <Route path="/oauth-callback" component={OAuthCallback} />
-  <Route path="/signup-complete" component={SignupRedirect} />
+      <Suspense fallback={<RouteLoader />}>
+        <Switch>
+          {/* Public routes rendered WITHOUT AppShell */}
+          <Route path="/storefront/preview">
+            <PublicStorefrontPage />
+          </Route>
+          <Route path="/storefront/:eventId/preview" component={PublicEventStorefrontPage} />
+          <Route path="/storefront/:eventId" component={PublicEventStorefrontPage} />
+          <Route path="/storefront/user/:userId">
+            <PublicStorefrontPage />
+          </Route>
+          <Route path="/storefront/:userId/asset/:assetId">
+            <PublicStorefrontAssetDetail />
+          </Route>
+          <Route path="/storefront/:userId/cart">
+            <StorefrontWithCart>
+              <StorefrontCart />
+            </StorefrontWithCart>
+          </Route>
+          <Route path="/storefront/:userId/checkout">
+            <StorefrontCheckoutRoute />
+          </Route>
+          
+          <Route path="/signin" component={SignIn} />
+          <Route path="/signup" component={SignUp} />
+          <Route path="/check-email" component={CheckEmail} />
+          <Route path="/reset-password" component={ResetPassword} />
+          <Route path="/email-confirmed" component={EmailConfirmed} />
+          <Route path="/oauth-callback" component={OAuthCallback} />
+          <Route path="/signup-complete" component={SignupRedirect} />
+          <Route path="/">
+            <SignIn />
+          </Route>
+          
+          {/* All other routes wrapped in AppShell */}
+          <Route>
+            <AppShell>
+              <Switch>
   <Route path="/dashboard">
           <ProtectedRoute>
             <DashboardComingSoon />
@@ -476,20 +496,19 @@ function App() {
           </ProtectedRoute>
         </Route>
 
-  <Route path="/coming-soon" component={ComingSoon} />
-
-        <Route path="/">
-          <SignIn />
-        </Route>
-        <Route>
-          {/* Redirect all unknown routes to signup to guide users through invite flow */}
-          <RedirectToSignup />
-        </Route>
-          </Switch>
-        </Suspense>
-        {/* Global mobile bottom navigation for parent pages */}
-        <MobileBottomNav />
-      </AppShell>
+                <Route path="/coming-soon" component={ComingSoon} />
+                
+                <Route>
+                  {/* Redirect all unknown routes to signup to guide users through invite flow */}
+                  <RedirectToSignup />
+                </Route>
+              </Switch>
+              {/* Global mobile bottom navigation for parent pages */}
+              <MobileBottomNav />
+            </AppShell>
+          </Route>
+        </Switch>
+      </Suspense>
     </ErrorBoundary>
   );
 }
