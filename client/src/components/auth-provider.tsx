@@ -95,11 +95,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (syncResponse.ok) {
                 setUser(await syncResponse.json());
               } else {
-                console.error("Sync failed:", syncResponse.status);
                 await supabase.auth.signOut();
+                const errorData = await syncResponse.json().catch(() => ({}));
+                const isServerError = syncResponse.status >= 500;
                 toast({
-                  title: "Invalid invite code",
-                  description: "Please check your invite code and try again.",
+                  title: isServerError ? "Server error" : "Account setup failed",
+                  description: isServerError 
+                    ? "Please try again in a moment or contact support."
+                    : errorData?.error || "Please check your invite code and try again.",
                   variant: "destructive",
                 });
               }
@@ -123,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Auth state change:", event, !!session);
+        // Auth state changed
         
         if (session?.user) {
           const authUser = session.user;
@@ -167,12 +170,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   description: "Welcome to Slabfy!",
                 });
               } else {
-                console.error("Auth change: Sync failed:", syncResponse.status);
                 await supabase.auth.signOut();
                 setUser(null);
+                const errorData = await syncResponse.json().catch(() => ({}));
+                const isServerError = syncResponse.status >= 500;
                 toast({
-                  title: "Invalid invite code",
-                  description: "Please check your invite code and try again.",
+                  title: isServerError ? "Server error" : "Account setup failed",
+                  description: isServerError 
+                    ? "Please try again in a moment or contact support."
+                    : errorData?.error || "Please check your invite code and try again.",
                   variant: "destructive",
                 });
               }
@@ -220,13 +226,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         options: {
           emailRedirectTo: `${window.location.origin}/email-confirmed`,
           data: {
-            inviteCode: inviteCode.trim().toUpperCase(), // Stored by Supabase in auth.users.raw_user_meta_data
+            inviteCode: inviteCode.trim().toUpperCase(),
           }
         }
       });
 
   if (error) {
-        console.log("Supabase signup error:", error);
         
         // Check for existing account errors
         // Supabase returns error code "user_already_exists" or message containing "already exists"
@@ -326,7 +331,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         } else if (response.status === 404) {
           // User not in DB - onAuthStateChange will handle sync
-          console.log("User not in DB, auth state listener will sync");
         } else {
           console.error("Error fetching user:", response.status);
           setUser(null);

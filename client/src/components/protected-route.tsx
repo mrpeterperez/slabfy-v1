@@ -2,16 +2,42 @@ import { useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { useLocation } from "wouter";
 
-export function ProtectedRoute({ children, redirectPath = "/signin" }: { children: React.ReactNode, redirectPath?: string }) {
+/**
+ * ProtectedRoute
+ * - Guards routes behind authentication
+ * - Optionally enforces onboarding completion and redirects to onboarding when needed
+ */
+export function ProtectedRoute({
+  children,
+  redirectPath = "/signin",
+  /**
+   * Skip redirecting to onboarding for routes that ARE the onboarding flow itself
+   * Example usage for onboarding pages: <ProtectedRoute skipOnboardingCheck>
+   */
+  skipOnboardingCheck = false,
+}: {
+  children: React.ReactNode;
+  redirectPath?: string;
+  skipOnboardingCheck?: boolean;
+}) {
   const { user, loading } = useAuth();
-  const [_, setLocation] = useLocation();
+  const [path, setLocation] = useLocation();
 
   useEffect(() => {
     if (!loading && !user) {
-      console.log('ProtectedRoute: redirecting to', redirectPath);
       setLocation(redirectPath);
+      return;
     }
-  }, [user, loading, setLocation, redirectPath]);
+
+    // If authenticated but onboarding not complete, force onboarding unless explicitly skipped
+    if (!loading && user && user.onboardingComplete !== "true" && !skipOnboardingCheck) {
+      // Allow navigation within onboarding routes without loops
+      const isOnboardingRoute = typeof path === "string" && path.startsWith("/onboarding");
+      if (!isOnboardingRoute) {
+        setLocation("/onboarding/step1");
+      }
+    }
+  }, [user, loading, setLocation, redirectPath, skipOnboardingCheck, path]);
 
   // Show loading spinner while authentication is being checked
   if (loading) {

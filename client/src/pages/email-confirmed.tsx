@@ -20,7 +20,6 @@ export default function EmailConfirmed() {
       try {
         // Get the current session to check if email is confirmed
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        
         if (sessionError) {
           console.error("Session error:", sessionError);
           setError("Failed to verify email confirmation");
@@ -28,24 +27,39 @@ export default function EmailConfirmed() {
           return;
         }
 
-        if (sessionData.session?.user) {
-          // Check if the user's email is confirmed
-          const user = sessionData.session.user;
-          
-          if (user.email_confirmed_at) {
-            setIsConfirmed(true);
-            
-            // The sync will happen automatically via auth-provider's onAuthStateChange
-            // which reads invite code from user.user_metadata.inviteCode
-            // No localStorage needed!
+        const authUser = sessionData.session?.user || null;
+        if (authUser?.email_confirmed_at) {
+          setIsConfirmed(true);
 
-            toast({
-              title: "Email confirmed successfully!",
-              description: "Welcome to Slabfy! You can now access your account.",
-            });
-          } else {
-            setError("Email confirmation is still pending");
+          // Try to ensure a corresponding app user exists (create via invite code if missing)
+          try {
+            const resp = await fetch(`/api/user/${authUser.id}`);
+            if (resp.status === 404) {
+              const inviteCode = authUser.user_metadata?.inviteCode?.toString().trim().toUpperCase();
+              if (inviteCode) {
+                const sync = await fetch('/api/auth/sync', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: authUser.id, email: authUser.email, inviteCode }),
+                });
+                if (!sync.ok) {
+                  const j = await sync.json().catch(() => ({}));
+                  setError(j?.error || 'Account setup failed. Please sign in to continue.');
+                }
+              } else {
+                setError('Invite code missing. Please sign in and try again.');
+              }
+            }
+          } catch (e) {
+            setError('Account setup incomplete. Please sign in to continue.');
           }
+
+          toast({
+            title: "Email confirmed successfully!",
+            description: "Welcome to Slabfy! You can now access your account.",
+          });
+        } else if (authUser) {
+          setError("Email confirmation is still pending");
         } else {
           setError("No active session found");
         }
@@ -75,16 +89,22 @@ export default function EmailConfirmed() {
   }, [toast]);
 
   const handleContinue = () => {
-    if (isConfirmed) {
-      // Check if user has completed onboarding
-      if (user?.onboardingComplete === "true") {
-        setLocation("/dashboard");
-      } else {
-        // New account - go to onboarding
-        setLocation("/onboarding/step1");
-      }
-    } else {
+    if (!isConfirmed) {
       setLocation("/signin");
+      return;
+    }
+
+    // If we don't have an app user yet, send to signin to trigger full flow instead of bouncing
+    if (!user) {
+      setLocation("/signin?confirmed=1");
+      return;
+    }
+
+    // Check onboarding status
+    if (user.onboardingComplete === "true") {
+      setLocation("/dashboard");
+    } else {
+      setLocation("/onboarding/step1");
     }
   };
 
@@ -133,7 +153,7 @@ export default function EmailConfirmed() {
           className="w-full"
         >
           {isConfirmed 
-            ? (user?.onboardingComplete === "true" ? "Continue to Dashboard" : "Continue to Onboarding")
+            ? (user ? (user.onboardingComplete === "true" ? "Continue to Dashboard" : "Continue to Onboarding") : "Sign in to continue")
             : "Back to Sign In"
           }
         </Button>
