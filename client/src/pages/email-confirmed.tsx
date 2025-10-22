@@ -5,6 +5,7 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/components/auth-provider";
 
 export default function EmailConfirmed() {
   const [_, setLocation] = useLocation();
@@ -12,6 +13,7 @@ export default function EmailConfirmed() {
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     const handleEmailConfirmation = async () => {
@@ -74,7 +76,13 @@ export default function EmailConfirmed() {
 
   const handleContinue = () => {
     if (isConfirmed) {
-      setLocation("/onboarding/step1");
+      // Check if user has completed onboarding
+      if (user?.onboardingComplete === "true") {
+        setLocation("/dashboard");
+      } else {
+        // New account - go to onboarding
+        setLocation("/onboarding/step1");
+      }
     } else {
       setLocation("/signin");
     }
@@ -124,7 +132,10 @@ export default function EmailConfirmed() {
           onClick={handleContinue}
           className="w-full"
         >
-          {isConfirmed ? "Continue to Dashboard" : "Back to Sign In"}
+          {isConfirmed 
+            ? (user?.onboardingComplete === "true" ? "Continue to Dashboard" : "Continue to Onboarding")
+            : "Back to Sign In"
+          }
         </Button>
         
         {!isConfirmed && (

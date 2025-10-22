@@ -100,8 +100,8 @@ export default function OnboardingStep2() {
           <div className="mx-auto mb-8">
             <Logo />
           </div>
-          <h1 className="text-3xl font-bold">Pick a username</h1>
-          <p className="text-muted-foreground mt-2">This will be your public handle.</p>
+          <h1 className="text-3xl font-bold">Choose your username</h1>
+          <p className="text-muted-foreground mt-2">Pick a username for your profile.</p>
         </div>
 
         <div className="space-y-4">
@@ -109,7 +109,7 @@ export default function OnboardingStep2() {
             <label className="block text-sm font-medium mb-2" htmlFor="username">Username</label>
             <Input
               id="username"
-              placeholder="e.g. slabking"
+              placeholder="Enter username"
               value={username}
               onChange={(e) => onChange(e.target.value)}
             />

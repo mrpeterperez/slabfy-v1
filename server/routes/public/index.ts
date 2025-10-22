@@ -3,6 +3,7 @@ import { usernameSchema, psaCertCache, userAssets, globalAssets } from "@shared/
 import { storage } from "../../storage-mod/registry";
 import { db } from "../../db";
 import { eq } from "drizzle-orm";
+import { isUsernameReserved, getReservedUsernameMessage } from "@shared/reserved-usernames";
 
 const router = Router();
 
@@ -96,6 +97,15 @@ router.post("/username/check", async (req: Request, res: Response) => {
     const validation = usernameSchema.safeParse(username);
     if (!validation.success) {
       return res.status(400).json({ error: "Invalid username format", details: validation.error.errors });
+    }
+
+    // Check if username is reserved
+    if (isUsernameReserved(username)) {
+      return res.json({ 
+        available: false,
+        reason: "reserved",
+        message: getReservedUsernameMessage(username)
+      });
     }
 
     const existing = await storage.getUserByUsername(username);

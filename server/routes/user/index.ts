@@ -9,6 +9,7 @@ import { db } from "../../db";
 import { eq, and, sql, notInArray, desc, isNotNull, isNull } from "drizzle-orm";
 import { triggerAssetCreationRefresh } from "../helpers/assetCreationRefresh";
 import { generateCardId } from "../helpers/cardIdGenerator";
+import { isUsernameReserved, getReservedUsernameMessage } from "@shared/reserved-usernames";
 
 const router = Router();
 
@@ -103,6 +104,14 @@ router.patch("/:userId/username", async (req: Request, res: Response) => {
     if (!username || typeof username !== "string") return res.status(400).json({ error: "Username is required" });
     const validationResult = usernameSchema.safeParse(username);
     if (!validationResult.success) return res.status(400).json({ error: "Invalid username format", details: validationResult.error.errors });
+    
+    // Check if username is reserved
+    if (isUsernameReserved(username)) {
+      return res.status(400).json({ 
+        error: getReservedUsernameMessage(username)
+      });
+    }
+    
     const user = await storage.getUser(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
     const updatedUser = await storage.updateUsername(userId, username);
