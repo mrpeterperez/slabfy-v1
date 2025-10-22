@@ -3,7 +3,7 @@ import { z } from "zod";
 import { storage } from "../../storage-mod/registry";
 import { db } from "../../db";
 import { insertUserSchema } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, lt } from "drizzle-orm";
 
 const router = Router();
 
@@ -30,12 +30,18 @@ router.post("/register", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "User with this email already exists" });
     }
 
-    if (!inviteCode || typeof inviteCode !== "string" || inviteCode.trim().length !== 8) {
+    // Normalize and validate invite code input (allow variable lengths)
+    const normalizedInvite = (inviteCode ?? "").toString().trim().toUpperCase();
+    if (!normalizedInvite) {
       return res.status(403).json({ error: "Invite code required", code: "INVITE_REQUIRED" });
     }
 
     const { inviteCodes } = await import("@shared/schema");
-    const [codeRow] = await db.select().from(inviteCodes).where(eq(inviteCodes.code, inviteCode.toUpperCase())).limit(1);
+    const [codeRow] = await db
+      .select()
+      .from(inviteCodes)
+      .where(eq(inviteCodes.code, normalizedInvite))
+      .limit(1);
 
     if (!codeRow) return res.status(403).json({ error: "Invalid invite code", code: "INVITE_INVALID" });
     if (!codeRow.isActive) return res.status(403).json({ error: "This invite code has been deactivated", code: "INVITE_INACTIVE" });
@@ -79,12 +85,18 @@ router.post("/sync", async (req: Request, res: Response) => {
     let user = await storage.getUser(id);
 
     if (!user) {
-      if (!inviteCode || typeof inviteCode !== "string" || inviteCode.trim().length !== 8) {
+      // Normalize invite code (accept variable lengths).
+      const normalizedInvite = (inviteCode ?? "").toString().trim().toUpperCase();
+      if (!normalizedInvite) {
         return res.status(403).json({ error: "Invite code required", code: "INVITE_REQUIRED" });
       }
 
       const { inviteCodes } = await import("@shared/schema");
-      const [codeRow] = await db.select().from(inviteCodes).where(eq(inviteCodes.code, inviteCode.toUpperCase())).limit(1);
+      const [codeRow] = await db
+        .select()
+        .from(inviteCodes)
+        .where(eq(inviteCodes.code, normalizedInvite))
+        .limit(1);
 
       if (!codeRow) return res.status(403).json({ error: "Invalid invite code", code: "INVITE_INVALID" });
       if (!codeRow.isActive) return res.status(403).json({ error: "This invite code has been deactivated", code: "INVITE_INACTIVE" });
@@ -112,14 +124,20 @@ router.post("/sync", async (req: Request, res: Response) => {
 
         // Then mark the invite code as used
         const { inviteCodes: inviteCodesTable } = await import("@shared/schema");
-        await tx
+        const updated = await tx
           .update(inviteCodesTable)
           .set({
             currentUses: (codeRow.currentUses ?? 0) + 1,
             usedBy: id,
             usedAt: new Date(),
           })
-          .where(eq(inviteCodesTable.id, codeRow.id));
+          .where(and(eq(inviteCodesTable.id, codeRow.id), lt(inviteCodesTable.currentUses, inviteCodesTable.maxUses)))
+          .returning({ id: inviteCodesTable.id });
+
+        // If no row was updated, the code was consumed concurrently. Roll back user creation.
+        if (!updated || updated.length === 0) {
+          throw new Error("INVITE_CONFLICT");
+        }
       });
 
       console.log(`Successfully created new user with invite: ${id}`);
@@ -131,6 +149,9 @@ router.post("/sync", async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error("Error synchronizing user:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    if (errorMessage === "INVITE_CONFLICT") {
+      return res.status(403).json({ error: "This invite code has reached its usage limit", code: "INVITE_EXHAUSTED" });
+    }
     return res.status(500).json({ error: "Failed to synchronize user", details: errorMessage });
   }
 });
