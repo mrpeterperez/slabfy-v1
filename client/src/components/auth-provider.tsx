@@ -25,6 +25,7 @@ interface AuthContextProps {
   signOut: () => Promise<void>;
   refreshUser: (userId: string) => Promise<void>;
   updateUserContext: (updatedUser: User) => void;
+  updateEmail: (newEmail: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -538,6 +539,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
+  const updateEmail = async (newEmail: string) => {
+    try {
+      if (USE_DATABASE_AUTH) {
+        toast({
+          title: "Email update not supported",
+          description: "Email updates are only available with Supabase authentication.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        email: newEmail,
+      });
+
+      if (error) {
+        toast({
+          title: "Email update failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        throw error;
+      }
+
+      toast({
+        title: "Verification email sent",
+        description: "Check your new email address to confirm the change.",
+      });
+    } catch (error) {
+      console.error("Unexpected error during email update:", error);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -549,6 +584,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resendConfirmationEmail,
     refreshUser,
     updateUserContext,
+    updateEmail,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
