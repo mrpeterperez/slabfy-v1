@@ -92,10 +92,29 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  // Serve static assets with proper MIME types
+  app.use(express.static(distPath, {
+    setHeaders: (res, filepath) => {
+      // Set correct MIME types for JavaScript modules
+      if (filepath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      } else if (filepath.endsWith('.mjs')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      } else if (filepath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      }
+    }
+  }));
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
+  // fall through to index.html ONLY for non-asset routes (HTML5 pushState routing)
+  app.use("*", (req, res, next) => {
+    // Don't serve index.html for asset requests
+    if (req.originalUrl.startsWith('/assets/') || 
+        req.originalUrl.includes('.js') || 
+        req.originalUrl.includes('.css') ||
+        req.originalUrl.includes('.map')) {
+      return res.status(404).send('Not found');
+    }
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
