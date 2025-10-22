@@ -42,7 +42,10 @@ export default function SignUp() {
   usePageTitle('Sign Up');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [inviteValidated, setInviteValidated] = useState(false);
-  const [validatedInviteCode, setValidatedInviteCode] = useState<string>("");
+  const [validatedInviteCode, setValidatedInviteCode] = useState<string>(() => {
+    // Initialize from sessionStorage if available
+    return sessionStorage.getItem("slabfy_invite_code") || "";
+  });
   const { signUp, user } = useAuth();
   const [_, setLocation] = useLocation();
   const { toast } = useToast();

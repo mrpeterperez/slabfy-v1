@@ -20,10 +20,10 @@ export function InviteGate({ children, onValidCode }: InviteGateProps) {
 
   // Check if user already has a valid invite code in session
   useEffect(() => {
-    const validatedCode = sessionStorage.getItem("slabfy_invite_validated");
-    if (validatedCode === "true") {
+    const validatedCode = sessionStorage.getItem("slabfy_invite_code");
+    if (validatedCode) {
       setIsValidated(true);
-      onValidCode();
+      onValidCode(validatedCode); // Pass the stored code back to parent
     }
   }, [onValidCode]);
 
@@ -55,11 +55,13 @@ export function InviteGate({ children, onValidCode }: InviteGateProps) {
       const data = await response.json();
 
       if (data.isValid === true) {
-        // Just store validation in session (cleared on browser close)
-        sessionStorage.setItem("slabfy_invite_validated", "true");
+        const normalizedCode = inviteCode.trim().toUpperCase();
+        
+        // Store the actual invite code in session (cleared on browser close)
+        sessionStorage.setItem("slabfy_invite_code", normalizedCode);
         
         setIsValidated(true);
-        onValidCode(inviteCode.trim().toUpperCase()); // Pass code to parent - THEY store it in Supabase metadata
+        onValidCode(normalizedCode); // Pass code to parent - THEY store it in Supabase metadata
         
         toast({
           title: "Welcome! 🎉",
