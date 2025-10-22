@@ -24,6 +24,7 @@ interface AuthContextProps {
   resendConfirmationEmail: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: (userId: string) => Promise<void>;
+  updateUserContext: (updatedUser: User) => void;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -530,6 +531,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateUserContext = (updatedUser: User) => {
+    setUser(prevUser => ({
+      ...prevUser,
+      ...updatedUser
+    }));
+  };
+
   const value = {
     user,
     loading,
@@ -540,6 +548,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetPassword,
     resendConfirmationEmail,
     refreshUser,
+    updateUserContext,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

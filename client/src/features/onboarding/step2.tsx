@@ -11,9 +11,10 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { ChevronLeft } from "lucide-react";
 
 export default function OnboardingStep2() {
-  const { user, refreshUser } = useAuth();
+  const { user, updateUserContext } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [username, setUsername] = useState("");
@@ -83,7 +84,9 @@ export default function OnboardingStep2() {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || "Failed to update username");
       }
-      await refreshUser(user.id);
+      const updatedUser = await res.json();
+      // Update auth context immediately with returned user data
+      updateUserContext(updatedUser);
       toast({ title: "Username set", description: `@${name} reserved` });
       setLocation("/onboarding/step3");
     } catch (e: any) {
@@ -96,6 +99,13 @@ export default function OnboardingStep2() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
+        <button
+          onClick={() => setLocation("/onboarding/step1")}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Go back"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
         <div className="text-center">
           <div className="mx-auto mb-8">
             <Logo />

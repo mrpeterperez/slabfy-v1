@@ -11,9 +11,10 @@ import { api } from "@/lib/supabase";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { ChevronLeft } from "lucide-react";
 
 export default function OnboardingStep3() {
-  const { user } = useAuth();
+  const { user, updateUserContext } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -32,7 +33,9 @@ export default function OnboardingStep3() {
   const handleContinue = async () => {
     try {
       if (user?.id) {
-        await api.onboarding.completeOnboarding(user.id);
+        const updatedUser = await api.onboarding.completeOnboarding(user.id);
+        // Update auth context immediately with returned user data
+        updateUserContext(updatedUser);
       }
     } catch (e) {
       // Non-blocking: proceed even if marking completion fails
@@ -48,6 +51,13 @@ export default function OnboardingStep3() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
+        <button
+          onClick={() => setLocation("/onboarding/step2")}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Go back"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
         <div className="text-center">
           <div className="mx-auto mb-8">
             <Logo />
