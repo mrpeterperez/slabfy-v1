@@ -69,6 +69,19 @@ export default function SignUp() {
     setIsSubmitting(true);
     
     try {
+      // Validate we have an invite code before proceeding
+      if (!validatedInviteCode || validatedInviteCode.trim() === "") {
+        toast({
+          title: "Missing invite code",
+          description: "Please refresh the page and enter your invite code again.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      console.log("Signing up with invite code:", validatedInviteCode); // DEBUG
+      
       // Pass invite code to signUp - it stores it in Supabase user_metadata!
       const result: SignUpResult = await signUp(data.email, data.password, validatedInviteCode, "/onboarding/step1");
 
@@ -114,6 +127,7 @@ export default function SignUp() {
 
   return (
     <InviteGate onValidCode={(code) => {
+      console.log("InviteGate validated code:", code); // DEBUG
       setValidatedInviteCode(code || "");
       setInviteValidated(true);
     }}>
