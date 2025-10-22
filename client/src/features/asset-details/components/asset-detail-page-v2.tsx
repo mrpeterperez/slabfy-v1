@@ -58,7 +58,7 @@ export const AssetDetailPageV2 = ({ providedAsset }: { providedAsset?: Asset }) 
   const { id, tab } = useParams<{ id: string; tab?: string }>();
   const activeTab = tab || "overview";
   const [, navigate] = useLocation();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   // Parse search parameters to detect where user came from
   // Wouter doesn't include query params in location, so we need to check window.location
@@ -76,17 +76,23 @@ export const AssetDetailPageV2 = ({ providedAsset }: { providedAsset?: Asset }) 
     isLoading,
     isError,
   } = useQuery({
-    queryKey: [`/api/assets-or-global/${id}`],
+    queryKey: [`/api/assets-or-global/${id}`, user?.id],
     queryFn: async () => {
-      // First try to fetch as user asset
+      // First try to fetch as user asset (will work if user owns it)
       try {
         const userAssetResponse = await apiRequest("GET", `/api/assets/${id}`);
         if (userAssetResponse.ok) {
           return userAssetResponse.json();
         }
-      } catch (error) {
-        // If user asset fetch fails, fall through to global asset
-        console.log('Asset not in user collection, fetching from global assets');
+      } catch (error: any) {
+        // Only fall through to global assets if it's a 404 (not found)
+        // If it's 401 (unauthorized), something's wrong with auth - throw it
+        if (error?.status === 401) {
+          console.error('Auth error when fetching asset:', error);
+          throw new Error('Authentication required to view this asset');
+        }
+        // For 404 or other errors, try global assets
+        console.log('Asset not in user collection, trying global assets');
       }
       
       // Fallback to global asset if user asset not found
@@ -96,7 +102,7 @@ export const AssetDetailPageV2 = ({ providedAsset }: { providedAsset?: Asset }) 
       }
       return globalAssetResponse.json();
     },
-    enabled: !!id && !providedAsset, // Only fetch if we have an ID and don't have providedAsset
+    enabled: !!id && !providedAsset && !authLoading, // Wait for auth to load before fetching
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
     refetchOnWindowFocus: false, // Don't refetch when window gains focus
@@ -192,8 +198,8 @@ export const AssetDetailPageV2 = ({ providedAsset }: { providedAsset?: Asset }) 
   const breadcrumbConfig = getBreadcrumbConfig(fromSource);
 
 
-  // If we're still loading and don't have a provided asset
-  if (isLoading && !providedAsset) {
+  // If we're still loading (auth or asset data) and don't have a provided asset
+  if ((authLoading || isLoading) && !providedAsset) {
     return (
       <div className="min-h-screen bg-background">
   <div className="container mx-auto py-8">
