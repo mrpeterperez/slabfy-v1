@@ -55,14 +55,11 @@ export function InviteGate({ children, onValidCode }: InviteGateProps) {
       const data = await response.json();
 
       if (data.isValid === true) {
-        // Store validation in session (cleared on browser close)
+        // Just store validation in session (cleared on browser close)
         sessionStorage.setItem("slabfy_invite_validated", "true");
-        // Store invite code in localStorage (persists for email confirmation)
-        localStorage.setItem("slabfy_invite_code", inviteCode.trim().toUpperCase());
-        sessionStorage.setItem("slabfy_invite_code", inviteCode.trim().toUpperCase());
         
         setIsValidated(true);
-        onValidCode(inviteCode.trim().toUpperCase()); // Pass code to callback
+        onValidCode(inviteCode.trim().toUpperCase()); // Pass code to parent - THEY store it in Supabase metadata
         
         toast({
           title: "Welcome! 🎉",

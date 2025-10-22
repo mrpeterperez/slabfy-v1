@@ -42,6 +42,7 @@ export default function SignUp() {
   usePageTitle('Sign Up');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [inviteValidated, setInviteValidated] = useState(false);
+  const [validatedInviteCode, setValidatedInviteCode] = useState<string>("");
   const { signUp, user } = useAuth();
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
@@ -57,18 +58,7 @@ export default function SignUp() {
   useEffect(() => {
     // If already signed in, redirect to dashboard
     if (user) {
-      // Check localStorage to see if we're in the middle of signup process
-      const isSigningUp = localStorage.getItem('slabfy_signing_up');
-      
-      if (isSigningUp === 'true') {
-        // Clear the signup flag
-        localStorage.removeItem('slabfy_signing_up');
-        // Redirect to onboarding
-        setLocation("/onboarding/step1");
-      } else {
-        // Regular login, go to dashboard
-        setLocation("/dashboard");
-      }
+      setLocation("/dashboard");
     }
   }, [user, setLocation]);
 
@@ -79,22 +69,13 @@ export default function SignUp() {
     setIsSubmitting(true);
     
     try {
-      // Set a flag in localStorage to mark signup process
-      localStorage.setItem('slabfy_signing_up', 'true');
-      localStorage.setItem('slabfy_signup_email', data.email);
-      
-      const result: SignUpResult = await signUp(data.email, data.password, "/onboarding/step1");
+      // Pass invite code to signUp - it stores it in Supabase user_metadata!
+      const result: SignUpResult = await signUp(data.email, data.password, validatedInviteCode, "/onboarding/step1");
 
       if (result.status === 'success') {
-        // DON'T mark invite code as used here - it will be marked when email is confirmed
-        // The invite code is stored in localStorage and will be used by /api/auth/sync
-        // after email confirmation to create the user in our database
-        
+        // Invite code is stored in Supabase metadata - no localStorage needed!
         setLocation("/check-email");
       } else if (result.status === 'exists') {
-        // Clear signup flow since user should sign in instead
-        localStorage.removeItem('slabfy_signing_up');
-        localStorage.removeItem('slabfy_signup_email');
         // Navigate to sign in page after slight delay to let toast show
         setTimeout(() => setLocation('/signin'), 600);
       } else if (result.status === 'error') {
@@ -102,26 +83,15 @@ export default function SignUp() {
         if (result.message && result.message.toLowerCase().includes('password')) {
           form.setError('password', { message: result.message });
         } else {
-          // Generic top-level toast already shown by auth provider for unexpected errors if any
           form.setError('password', { message: result.message || 'Sign up failed' });
         }
-        // Cleanup signup flag on failure
-        localStorage.removeItem('slabfy_signing_up');
-        localStorage.removeItem('slabfy_signup_email');
       }
       
     } catch (error) {
       console.error("Error during signup:", error);
       
-      // Clean up and ensure flag is removed on error
-      localStorage.removeItem('slabfy_signing_up');
-      localStorage.removeItem('slabfy_signup_email');
-      
-      // We only need to handle errors not already caught by the auth provider
       const errorMessage = error instanceof Error ? error.message : String(error);
       
-      // Don't show duplicate errors for existing accounts
-      // Prefer inline password message if relevant
       if (errorMessage.toLowerCase().includes('password')) {
         form.setError('password', { message: errorMessage });
       } else {
@@ -136,7 +106,6 @@ export default function SignUp() {
         }
       }
       
-      // Don't redirect to check-email if there was an error
       return;
     } finally {
       setIsSubmitting(false);
@@ -144,7 +113,10 @@ export default function SignUp() {
   };
 
   return (
-    <InviteGate onValidCode={() => setInviteValidated(true)}>
+    <InviteGate onValidCode={(code) => {
+      setValidatedInviteCode(code || "");
+      setInviteValidated(true);
+    }}>
       {inviteValidated ? (
         <div className="flex min-h-screen flex-col justify-center px-6 py-12 lg:px-8 bg-background text-foreground">
           <div className="sm:mx-auto sm:w-full sm:max-w-sm">

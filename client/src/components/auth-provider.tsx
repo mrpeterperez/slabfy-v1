@@ -17,7 +17,7 @@ interface AuthContextProps {
   user: User | null;
   loading: boolean;
   // Returns structured result so caller can decide on navigation + field errors
-  signUp: (email: string, password: string, redirectUrl?: string) => Promise<SignUpResult>;
+  signUp: (email: string, password: string, inviteCode: string, redirectUrl?: string) => Promise<SignUpResult>;
   signIn: (email: string, password: string, redirectUrl?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -61,17 +61,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (data.session?.user) {
           const authUser = data.session.user;
           
-          // Simple flow: fetch user from DB, if not found require invite code
+          // Simple flow: fetch user from DB, if not found try sync with metadata invite code
           try {
             const response = await fetch(`/api/user/${authUser.id}`);
             if (response.ok) {
               setUser(await response.json());
             } else if (response.status === 404) {
-              // User not in DB - try to sync with invite code
-              const inviteCode = localStorage.getItem('slabfy_invite_code');
+              // User not in DB - try to sync with invite code from user_metadata
+              const inviteCode = authUser.user_metadata?.inviteCode;
               
               if (!inviteCode) {
-                console.warn("User not in DB and no invite code - signing out");
+                console.warn("User not in DB and no invite code in metadata - signing out");
                 await supabase.auth.signOut();
                 toast({
                   title: "Account setup incomplete",
@@ -94,7 +94,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               
               if (syncResponse.ok) {
                 setUser(await syncResponse.json());
-                localStorage.removeItem('slabfy_invite_code');
               } else {
                 console.error("Sync failed:", syncResponse.status);
                 await supabase.auth.signOut();
@@ -129,17 +128,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           const authUser = session.user;
           
-          // Simple flow: fetch user from DB, if not found require invite code
+          // Simple flow: fetch user from DB, if not found try sync with metadata invite code
           try {
             const response = await fetch(`/api/user/${authUser.id}`);
             if (response.ok) {
               setUser(await response.json());
             } else if (response.status === 404) {
-              // User not in DB - try to sync with invite code
-              const inviteCode = localStorage.getItem('slabfy_invite_code');
+              // User not in DB - try to sync with invite code from user_metadata
+              const inviteCode = authUser.user_metadata?.inviteCode;
               
               if (!inviteCode) {
-                console.warn("Auth change: User not in DB, no invite code");
+                console.warn("Auth change: User not in DB, no invite code in metadata");
                 await supabase.auth.signOut();
                 setUser(null);
                 toast({
@@ -163,7 +162,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               
               if (syncResponse.ok) {
                 setUser(await syncResponse.json());
-                localStorage.removeItem('slabfy_invite_code');
                 toast({
                   title: "Account created!",
                   description: "Welcome to Slabfy!",
@@ -199,9 +197,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Handle user registration with Supabase or database auth
    * @param email User's email address
    * @param password User's chosen password
+   * @param inviteCode Invite code to store in user metadata
    * @param redirectUrl Optional URL to redirect after signup
    */
-  const signUp = async (email: string, password: string, redirectUrl?: string): Promise<SignUpResult> => {
+  const signUp = async (email: string, password: string, inviteCode: string, redirectUrl?: string): Promise<SignUpResult> => {
     try {
       if (USE_DATABASE_AUTH) {
         // Use our database auth
@@ -214,12 +213,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { status: 'success', userId: user.id };
       }
 
-      // Use Supabase auth
+      // Use Supabase auth - store invite code in user metadata (persists across devices!)
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/email-confirmed`
+          emailRedirectTo: `${window.location.origin}/email-confirmed`,
+          data: {
+            inviteCode: inviteCode.trim().toUpperCase(), // Stored by Supabase in auth.users.raw_user_meta_data
+          }
         }
       });
 
