@@ -74,7 +74,7 @@ export default function SignUp() {
 
       if (result.status === 'success') {
         // Invite code is stored in Supabase metadata - no localStorage needed!
-        setLocation("/check-email");
+        setLocation(`/check-email?email=${encodeURIComponent(data.email)}`);
       } else if (result.status === 'exists') {
         // Navigate to sign in page after slight delay to let toast show
         setTimeout(() => setLocation('/signin'), 600);

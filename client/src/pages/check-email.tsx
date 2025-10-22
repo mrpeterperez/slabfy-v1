@@ -13,10 +13,11 @@ export default function CheckEmail(_props: any) {
   const { resendConfirmationEmail } = useAuth();
 
   useEffect(() => {
-    // Get the stored email from localStorage
-    const storedEmail = localStorage.getItem('slabfy_signup_email');
-    if (storedEmail) {
-      setEmail(storedEmail);
+    // Get email from URL params if available
+    const params = new URLSearchParams(window.location.search);
+    const emailParam = params.get('email');
+    if (emailParam) {
+      setEmail(emailParam);
     }
   }, []);
 
