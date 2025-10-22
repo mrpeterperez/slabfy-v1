@@ -41,9 +41,8 @@ type SignUpFormValues = z.infer<typeof signUpSchema>;
 export default function SignUp() {
   usePageTitle('Sign Up');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // 🧪 TESTING: Auto-validate invite to bypass the gate
-  const [inviteValidated, setInviteValidated] = useState(true); // Changed from false
-  const [validatedInviteCode, setValidatedInviteCode] = useState<string>("TESTING"); // Default value
+  const [inviteValidated, setInviteValidated] = useState(false);
+  const [validatedInviteCode, setValidatedInviteCode] = useState<string>("");
   const { signUp, user } = useAuth();
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
@@ -70,9 +69,6 @@ export default function SignUp() {
     setIsSubmitting(true);
     
     try {
-      // 🧪 TESTING: Invite code validation disabled
-      // TODO: Re-enable invite code validation after testing
-      /*
       // Validate we have an invite code before proceeding
       if (!validatedInviteCode || validatedInviteCode.trim() === "") {
         toast({
@@ -83,12 +79,11 @@ export default function SignUp() {
         setIsSubmitting(false);
         return;
       }
-      */
       
       console.log("Signing up with invite code:", validatedInviteCode); // DEBUG
       
       // Pass invite code to signUp - it stores it in Supabase user_metadata!
-      const result: SignUpResult = await signUp(data.email, data.password, validatedInviteCode || 'TESTING', "/onboarding/step1");
+      const result: SignUpResult = await signUp(data.email, data.password, validatedInviteCode, "/onboarding/step1");
 
       if (result.status === 'success') {
         // Invite code is stored in Supabase metadata - no localStorage needed!

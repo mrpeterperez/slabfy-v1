@@ -30,9 +30,6 @@ router.post("/register", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "User with this email already exists" });
     }
 
-    // 🧪 TESTING: Invite code validation temporarily disabled
-    // TODO: Re-enable invite code validation after testing
-    /*
     // Normalize and validate invite code input (allow variable lengths)
     const normalizedInvite = (inviteCode ?? "").toString().trim().toUpperCase();
     if (!normalizedInvite) {
@@ -54,13 +51,10 @@ router.post("/register", async (req: Request, res: Response) => {
     if ((codeRow.currentUses ?? 0) >= (codeRow.maxUses ?? 1)) {
       return res.status(403).json({ error: "This invite code has reached its usage limit", code: "INVITE_EXHAUSTED" });
     }
-    */
 
   // Only persist fields that exist in our users table (email, optional username)
   const user = await storage.createUser({ id, email: validatedData.email, username: (validatedData as any).username });
 
-    // 🧪 TESTING: Invite code tracking disabled
-    /*
     const { inviteCodes: inviteCodesTable } = await import("@shared/schema");
     await db
       .update(inviteCodesTable)
@@ -70,7 +64,6 @@ router.post("/register", async (req: Request, res: Response) => {
         usedAt: new Date(),
       })
       .where(eq(inviteCodesTable.id, codeRow.id));
-    */
 
   return res.status(201).json(user);
   } catch (error: any) {
@@ -92,9 +85,6 @@ router.post("/sync", async (req: Request, res: Response) => {
     let user = await storage.getUser(id);
 
     if (!user) {
-      // 🧪 TESTING: Invite code validation temporarily disabled
-      // TODO: Re-enable invite code validation after testing
-      /*
       // Normalize invite code (accept variable lengths).
       const normalizedInvite = (inviteCode ?? "").toString().trim().toUpperCase();
       if (!normalizedInvite) {
@@ -116,7 +106,6 @@ router.post("/sync", async (req: Request, res: Response) => {
       if ((codeRow.currentUses ?? 0) >= (codeRow.maxUses ?? 1)) {
         return res.status(403).json({ error: "This invite code has reached its usage limit", code: "INVITE_EXHAUSTED" });
       }
-      */
 
       const existingUserByEmail = await storage.getUserByEmail(email);
       if (existingUserByEmail) {
@@ -126,13 +115,6 @@ router.post("/sync", async (req: Request, res: Response) => {
         });
       }
 
-      // 🧪 TESTING: Create user without invite code validation
-      const { users } = await import("@shared/schema");
-      const [createdUser] = await db.insert(users).values({ id, email }).returning();
-      user = createdUser;
-
-      // 🧪 TESTING: Invite code tracking disabled
-      /*
       // Use a transaction to ensure both user creation and invite code update succeed or rollback together
       await db.transaction(async (tx) => {
         // Create the user first
@@ -157,9 +139,8 @@ router.post("/sync", async (req: Request, res: Response) => {
           throw new Error("INVITE_CONFLICT");
         }
       });
-      */
 
-      console.log(`Successfully created new user (TESTING - no invite validation): ${id}`);
+      console.log(`Successfully created new user with invite code: ${id}`);
     }
 
     if (!user) return res.status(500).json({ error: "Failed to get or create user" });
