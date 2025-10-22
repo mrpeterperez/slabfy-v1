@@ -70,6 +70,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               // User not in DB - try to sync with invite code from user_metadata
               const inviteCode = authUser.user_metadata?.inviteCode;
               
+              // 🧪 TESTING: Invite code no longer required
+              // TODO: Re-enable invite code requirement after testing
+              /*
               if (!inviteCode) {
                 console.warn("User not in DB and no invite code in metadata - signing out");
                 await supabase.auth.signOut();
@@ -80,15 +83,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 });
                 return;
               }
+              */
               
-              // Attempt sync
+              // Attempt sync (invite code is optional for testing)
               const syncResponse = await fetch('/api/auth/sync', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   id: authUser.id,
                   email: authUser.email,
-                  inviteCode,
+                  inviteCode: inviteCode || 'TESTING',
                 }),
               });
               
@@ -137,6 +141,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               // User not in DB - try to sync with invite code from user_metadata
               const inviteCode = authUser.user_metadata?.inviteCode;
               
+              // 🧪 TESTING: Invite code no longer required
+              // TODO: Re-enable invite code requirement after testing
+              /*
               if (!inviteCode) {
                 console.warn("Auth change: User not in DB, no invite code in metadata");
                 await supabase.auth.signOut();
@@ -148,15 +155,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 });
                 return;
               }
+              */
               
-              // Attempt sync
+              // Attempt sync (invite code is optional for testing)
               const syncResponse = await fetch('/api/auth/sync', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   id: authUser.id,
                   email: authUser.email,
-                  inviteCode,
+                  inviteCode: inviteCode || 'TESTING',
                 }),
               });
               
