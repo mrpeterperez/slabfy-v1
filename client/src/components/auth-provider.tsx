@@ -58,98 +58,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         
-        if (data.session) {
-          const { user } = data.session;
+        if (data.session?.user) {
+          const authUser = data.session.user;
           
-          // Fetch complete user data from our database first
-          // DON'T set temporary user state to prevent dashboard access before sync
+          // Simple flow: fetch user from DB, if not found require invite code
           try {
-            const response = await fetch(`/api/user/${user.id}`);
+            const response = await fetch(`/api/user/${authUser.id}`);
             if (response.ok) {
-              const userData = await response.json();
-              setUser(userData);
+              setUser(await response.json());
             } else if (response.status === 404) {
-              // User doesn't exist in our database, check if this is a NEW user or an existing user
-              console.log("User not found in database during session check, checking if this is a new signup...");
+              // User not in DB - try to sync with invite code
+              const inviteCode = localStorage.getItem('slabfy_invite_code');
               
-              // Check if user exists by email (they might have signed up with different OAuth provider)
-              try {
-                const emailCheckResponse = await fetch(`/api/user/by-email/${encodeURIComponent(user.email!)}`);
-                
-                if (emailCheckResponse.ok) {
-                  // User exists with this email but different ID - link accounts
-                  console.log("Found existing user with same email during session check, linking accounts...");
-                  const existingUser = await emailCheckResponse.json();
-                  setUser(existingUser);
-                  return;
-                } else if (emailCheckResponse.status === 404) {
-                  // This is truly a new user - they need an invite code
-                  console.log("New user detected during session check, requiring invite code...");
-                  const inviteCode = localStorage.getItem('slabfy_invite_code');
-                  
-                  if (!inviteCode) {
-                    // New user without invite code - redirect to signup with invite
-                    console.warn("New user attempting session without invite code - redirecting to signup");
-                    await supabase.auth.signOut();
-                    setUser(null);
-                    toast({
-                      title: "Account not found",
-                      description: "Please use an invite code to create a new account.",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  
-                  const syncResponse = await fetch('/api/auth/sync', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      id: user.id,
-                      email: user.email,
-                      inviteCode,
-                    }),
-                  });
-                  
-                  if (syncResponse.ok) {
-                    const syncedUser = await syncResponse.json();
-                    setUser(syncedUser);
-                    console.log("New user synced successfully during session check:", syncedUser.id);
-                    try { localStorage.removeItem('slabfy_invite_code'); } catch {}
-                  } else if (syncResponse.status === 403) {
-                    // Invalid invite code for new user
-                    console.warn("Invalid invite code for new user during session check");
-                    await supabase.auth.signOut();
-                    setUser(null);
-                    toast({
-                      title: "Invalid invite code",
-                      description: "Please check your invite code and try again.",
-                      variant: "destructive",
-                    });
-                  } else {
-                    console.error("Failed to sync new user during session check, status:", syncResponse.status);
-                    setUser(null);
-                  }
-                } else {
-                  console.error("Error checking user by email during session check, status:", emailCheckResponse.status);
-                  setUser(null);
-                }
-              } catch (syncError) {
-                console.error("Error during user sync process in session check:", syncError);
-                setUser(null);
+              if (!inviteCode) {
+                console.warn("User not in DB and no invite code - signing out");
+                await supabase.auth.signOut();
+                toast({
+                  title: "Account setup incomplete",
+                  description: "Please sign up with an invite code.",
+                  variant: "destructive",
+                });
+                return;
+              }
+              
+              // Attempt sync
+              const syncResponse = await fetch('/api/auth/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  id: authUser.id,
+                  email: authUser.email,
+                  inviteCode,
+                }),
+              });
+              
+              if (syncResponse.ok) {
+                setUser(await syncResponse.json());
+                localStorage.removeItem('slabfy_invite_code');
+              } else {
+                console.error("Sync failed:", syncResponse.status);
+                await supabase.auth.signOut();
+                toast({
+                  title: "Invalid invite code",
+                  description: "Please check your invite code and try again.",
+                  variant: "destructive",
+                });
               }
             }
           } catch (error) {
-            console.error("Error fetching user data on session check:", error);
+            console.error("Error fetching user:", error);
             setUser(null);
           }
         } else {
-          // No session found
           setUser(null);
         }
       } catch (error) {
-        console.error("Unexpected error during session check:", error);
+        console.error("Session check error:", error);
       } finally {
         setLoading(false);
       }
@@ -162,104 +126,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         console.log("Auth state change:", event, !!session);
         
-        if (session && session.user) {
-          console.log("Auth state change: validating user:", session.user.email);
+        if (session?.user) {
+          const authUser = session.user;
           
-          // Reject fake emails immediately
-          if (session.user.email && session.user.email.includes("@example.com")) {
-            console.warn("Detected fake email, signing out:", session.user.email);
-            await supabase.auth.signOut();
-            setUser(null);
-            return;
-          }
-          
-          // Fetch complete user data from our database first
-          // DON'T set temporary user state to prevent dashboard access before sync
+          // Simple flow: fetch user from DB, if not found require invite code
           try {
-            const response = await fetch(`/api/user/${session.user.id}`);
+            const response = await fetch(`/api/user/${authUser.id}`);
             if (response.ok) {
-              const userData = await response.json();
-              console.log("User found in database:", userData.email);
-              setUser(userData);
+              setUser(await response.json());
             } else if (response.status === 404) {
-              // User doesn't exist in our database, check if this is a NEW user or an existing user
-              console.log("User not found in database, checking if this is a new signup...");
+              // User not in DB - try to sync with invite code
+              const inviteCode = localStorage.getItem('slabfy_invite_code');
               
-              // Check if user exists by email (they might have signed up with different OAuth provider)
-              try {
-                const emailCheckResponse = await fetch(`/api/user/by-email/${encodeURIComponent(session.user.email!)}`);
-                
-                if (emailCheckResponse.ok) {
-                  // User exists with this email but different ID - link accounts
-                  console.log("Found existing user with same email, linking accounts...");
-                  const existingUser = await emailCheckResponse.json();
-                  setUser(existingUser);
-                  return;
-                } else if (emailCheckResponse.status === 404) {
-                  // This is truly a new user - they need an invite code
-                  console.log("New user detected, requiring invite code...");
-                  const inviteCode = localStorage.getItem('slabfy_invite_code');
-                  console.log("Syncing with invite code:", !!inviteCode);
-                  
-                  if (!inviteCode) {
-                    // New user without invite code - redirect to signup with invite
-                    console.warn("New user attempting login without invite code - redirecting to signup");
-                    await supabase.auth.signOut();
-                    setUser(null);
-                    toast({
-                      title: "Account not found",
-                      description: "Please use an invite code to create a new account.",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  
-                  const syncResponse = await fetch('/api/auth/sync', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      id: session.user.id,
-                      email: session.user.email,
-                      inviteCode,
-                    }),
-                  });
-                  
-                  if (syncResponse.ok) {
-                    const syncedUser = await syncResponse.json();
-                    setUser(syncedUser);
-                    console.log("New user synced successfully:", syncedUser.email);
-                    try { localStorage.removeItem('slabfy_invite_code'); } catch {}
-                  } else if (syncResponse.status === 403) {
-                    // Invalid invite code for new user
-                    console.warn("Invalid invite code for new user");
-                    await supabase.auth.signOut();
-                    setUser(null);
-                    toast({
-                      title: "Invalid invite code",
-                      description: "Please check your invite code and try again.",
-                      variant: "destructive",
-                    });
-                  } else {
-                    console.error("Failed to sync new user, status:", syncResponse.status);
-                    setUser(null);
-                  }
-                } else {
-                  console.error("Error checking user by email, status:", emailCheckResponse.status);
-                  setUser(null);
-                }
-              } catch (syncError) {
-                console.error("Error during user sync process:", syncError);
+              if (!inviteCode) {
+                console.warn("Auth change: User not in DB, no invite code");
+                await supabase.auth.signOut();
                 setUser(null);
+                toast({
+                  title: "Account setup incomplete",
+                  description: "Please sign up with an invite code.",
+                  variant: "destructive",
+                });
+                return;
+              }
+              
+              // Attempt sync
+              const syncResponse = await fetch('/api/auth/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  id: authUser.id,
+                  email: authUser.email,
+                  inviteCode,
+                }),
+              });
+              
+              if (syncResponse.ok) {
+                setUser(await syncResponse.json());
+                localStorage.removeItem('slabfy_invite_code');
+                toast({
+                  title: "Account created!",
+                  description: "Welcome to Slabfy!",
+                });
+              } else {
+                console.error("Auth change: Sync failed:", syncResponse.status);
+                await supabase.auth.signOut();
+                setUser(null);
+                toast({
+                  title: "Invalid invite code",
+                  description: "Please check your invite code and try again.",
+                  variant: "destructive",
+                });
               }
             }
           } catch (error) {
-            console.error("Error fetching user data on auth state change:", error);
+            console.error("Auth change: Error fetching user:", error);
             setUser(null);
           }
         } else {
-          console.log("Auth state change: no session");
           setUser(null);
         }
         setLoading(false);
@@ -360,7 +284,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string, redirectUrl?: string) => {
     try {
       if (USE_DATABASE_AUTH) {
-        // Use our database auth
         const user = await api.auth.login(email, password);
         setUser(user);
         toast({
@@ -378,11 +301,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         // Check for email not confirmed error - let the signin page handle the UI
-        if (error.message && error.message.toLowerCase().includes('email not confirmed')) {
+        if (error.message?.toLowerCase().includes('email not confirmed')) {
           throw error; // Throw so signin page can handle it with resend UI
         }
         
-        // For other errors, show toast and throw
         toast({
           title: "Sign in failed",
           description: error.message,
@@ -392,37 +314,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.user) {
-        // Fetch complete user data from our database (don't set temp user state)
-        try {
-          const response = await fetch(`/api/user/${data.user.id}`);
-          if (response.ok) {
-            const userData = await response.json();
-            setUser(userData);
-            toast({
-              title: "Sign in successful",
-              description: "Welcome back!",
-            });
-          } else {
-            console.error("User not found in database during sign in");
-            setUser(null);
-          }
-        } catch (fetchError) {
-          console.error("Error fetching user data on sign in:", fetchError);
+        // Simple: fetch user from DB
+        const response = await fetch(`/api/user/${data.user.id}`);
+        if (response.ok) {
+          setUser(await response.json());
+          toast({
+            title: "Sign in successful",
+            description: "Welcome back!",
+          });
+        } else if (response.status === 404) {
+          // User not in DB - onAuthStateChange will handle sync
+          console.log("User not in DB, auth state listener will sync");
+        } else {
+          console.error("Error fetching user:", response.status);
           setUser(null);
         }
       }
     } catch (error) {
-      // Don't swallow errors here – let callers (e.g. SignIn page) render specific UI
-      console.error("Unexpected error during sign in:", error);
-      // Show a generic toast only for unknown errors; callers may still handle specifics
-      if (!(error as any)?.message?.toLowerCase?.().includes?.('email not confirmed')) {
-        toast({
-          title: "An unexpected error occurred",
-          description: "Please try again later.",
-          variant: "destructive",
-        });
-      }
-      // Re-throw so the caller can react (e.g., show resend panel)
+      console.error("Sign in error:", error);
+      // Re-throw for caller to handle
       throw error;
     }
   };
