@@ -22,6 +22,7 @@
   import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
   import { OwnershipBadge, getOwnershipType } from "@/components/ui/ownership-badge";
   import { PortfolioSparkline } from "@/components/ui/metrics/sparkline/portfolio-sparkline";
+  import { useAuth } from "@/components/auth-provider";
 
   // SlabFy logo component for branded purchases
   function SlabfyLogo({ className = "" }: { className?: string }) {
@@ -81,9 +82,11 @@
     assetId, 
     purchasePrice 
   }) => {
+    const { user, loading: authLoading } = useAuth();
+    
     const { data: pricingData, isLoading } = useQuery<PricingData>({
       queryKey: [`/api/pricing/${assetId}`],
-      enabled: !!assetId,
+      enabled: !!assetId && !authLoading,
       staleTime: 5 * 60 * 1000,
       gcTime: 10 * 60 * 1000,
     });

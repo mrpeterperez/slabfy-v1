@@ -625,7 +625,7 @@ export const AddConsignmentDialog = ({ isOpen, onClose }: AddConsignmentDialogPr
             )}
 
             {/* Description Section */}
-            <section className="space-y-4 sm:space-y-6">
+            <section className="space-y-4 sm:space-y-6 pb-48">
               <h2 className="text-lg font-medium text-foreground">Description</h2>
               
               <div>

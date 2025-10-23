@@ -12,6 +12,7 @@ import { PriceRangeCard } from './price-range-card'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { useAuth } from '@/components/auth-provider'
 
 import { Asset } from '@shared/schema'
 
@@ -21,6 +22,7 @@ interface SalesViewProps {
 }
 
 export function SalesView({ asset, enabled = true }: SalesViewProps) {
+  const { user, loading: authLoading } = useAuth();
   const assetId = asset.id; // Extract assetId for backwards compatibility with existing queries
   const [showVerifiedOnly, setShowVerifiedOnly] = useState(false) // Default to show all sales
   
@@ -33,7 +35,7 @@ export function SalesView({ asset, enabled = true }: SalesViewProps) {
       }
       return response.json()
     },
-    enabled: enabled && Boolean(assetId),
+    enabled: enabled && Boolean(assetId) && !authLoading,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
     placeholderData: (prev) => prev, // Keep previous data to prevent jank

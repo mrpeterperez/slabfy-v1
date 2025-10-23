@@ -12,6 +12,7 @@ import TradingChart from "./trading-chart/trading-chart";
 import type { TradingChartData } from "./trading-chart/types";
 import { useQuery } from "@tanstack/react-query";
 import type { TimeRange } from "./trading-chart/utils/time-range-filter";
+import { useAuth } from "@/components/auth-provider";
 
 interface AssetPriceChartV2Props {
   cardData?: Asset | null;
@@ -19,7 +20,8 @@ interface AssetPriceChartV2Props {
 }
 
 export default function AssetPriceChartV2({ cardData, className }: AssetPriceChartV2Props) {
-  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('1M');
+  const { user, loading: authLoading } = useAuth();
+  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('ALL');
   
   // Fetch authentic sales data from our API
   const { data: salesResponse, isLoading: isLoadingSales } = useQuery({
@@ -30,7 +32,7 @@ export default function AssetPriceChartV2({ cardData, className }: AssetPriceCha
       if (!response.ok) throw new Error('Failed to fetch sales data');
       return response.json();
     },
-    enabled: !!cardData?.id,
+    enabled: !!cardData?.id && !authLoading,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnWindowFocus: false,
   });
@@ -44,7 +46,7 @@ export default function AssetPriceChartV2({ cardData, className }: AssetPriceCha
       if (!response.ok) throw new Error('Failed to fetch pricing data');
       return response.json();
     },
-    enabled: !!cardData?.id,
+    enabled: !!cardData?.id && !authLoading,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes  
     refetchOnWindowFocus: false,
   });

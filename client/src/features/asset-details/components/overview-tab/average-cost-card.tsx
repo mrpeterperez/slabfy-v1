@@ -8,6 +8,7 @@ import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Asset } from "@shared/schema";
 import { useVariations } from "../variations/variations-hook";
+import { useAuth } from "@/components/auth-provider";
 
 interface PricingData {
   averagePrice: number;
@@ -21,6 +22,8 @@ interface AverageCostCardProps {
 }
 
 export const AverageCostCard: React.FC<AverageCostCardProps> = ({ asset, relatedAssets = [] }) => {
+  const { user, loading: authLoading } = useAuth();
+  
   // Get variations of the same card
   const { variations } = useVariations({ baseAsset: asset });
 
@@ -32,7 +35,7 @@ export const AverageCostCard: React.FC<AverageCostCardProps> = ({ asset, related
       if (!response.ok) throw new Error("Failed to fetch pricing data");
       return response.json();
     },
-    enabled: !!asset.id,
+    enabled: !!asset.id && !authLoading,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,

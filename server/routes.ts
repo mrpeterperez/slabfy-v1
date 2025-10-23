@@ -64,7 +64,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.use("/api/pricing", pricingRoutes);
   app.use("/api/market", marketRoutes);
   app.use("/api/events", eventsRoutes);
-  app.use("/api/card-shows", cardShowsRoutes);
+  // app.use("/api/card-shows", cardShowsRoutes); // Removed - scraping complexity not needed
   app.use("/api", purchasesRoutes);
   app.use("/api/buying-desk", buyingDeskRoutes);
   app.use("/api/global-assets", globalAssetsRoutes);

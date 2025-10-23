@@ -303,6 +303,7 @@ export function EventDetailPage() {
       {/* Unified Header with Navigation */}
       <DetailPageHeader 
         title={event.name}
+        thumbnailUrl={event.logoUrl || undefined}
         statusPill={<EventStatusPill status={event.status as EventStatus} />}
         basePath={basePath}
         currentTab={currentTab}

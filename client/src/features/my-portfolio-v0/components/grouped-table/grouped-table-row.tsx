@@ -52,8 +52,8 @@ export const GroupedTableRow: React.FC<RowProps> = ({ asset, market, show, onCli
             onClick={() => onClick(asset)}
           >
             {indent > 0 && <span style={{ width: indent }} className="flex-shrink-0" />}
-            <div className="h-16 w-10 bg-muted rounded overflow-hidden flex items-center justify-center group-hover:ring-2 group-hover:ring-primary relative">
-              <img src={asset.psaImageFrontUrl || PLACEHOLDER_IMAGE_URL} alt="card" className="object-cover w-full h-full" />
+            <div className="h-auto w-14 bg-muted rounded overflow-hidden flex items-center justify-center group-hover:ring-2 group-hover:ring-primary relative">
+              <img src={asset.psaImageFrontUrl || PLACEHOLDER_IMAGE_URL} alt="card" className="w-full h-full object-cover" />
               {!asset.psaImageFrontUrl && (
                 <Tooltip>
                   <TooltipTrigger asChild>

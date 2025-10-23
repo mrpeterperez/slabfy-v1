@@ -3,11 +3,49 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { VitePWA } from "vite-plugin-pwa";
 
-const isProd = process.env.NODE_ENV === 'production';
+const isDev = process.env.NODE_ENV !== 'production';
 
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      babel: isDev ? {
+        plugins: [
+          // 🔥 Inject data-source="file:line:col" into every JSX element in dev
+          function injectDataSource({ types: t }: any) {
+            return {
+              visitor: {
+                JSXOpeningElement(path: any, state: any) {
+                  const { filename } = state.file.opts;
+                  const { line, column } = path.node.loc?.start || {};
+                  
+                  if (!filename || !line) return;
+                  
+                  // Get relative path from project root
+                  const relativePath = filename.replace(process.cwd() + '/', '');
+                  
+                  // Create data-source attribute with file:line:column
+                  const sourceValue = `${relativePath}:${line}:${column}`;
+                  
+                  // Check if data-source already exists
+                  const hasDataSource = path.node.attributes.some(
+                    (attr: any) => attr.name?.name === 'data-source'
+                  );
+                  
+                  if (!hasDataSource) {
+                    path.node.attributes.push(
+                      t.jsxAttribute(
+                        t.jsxIdentifier('data-source'),
+                        t.stringLiteral(sourceValue)
+                      )
+                    );
+                  }
+                }
+              }
+            };
+          }
+        ]
+      } : undefined
+    }),
     VitePWA({
       registerType: "autoUpdate",
       devOptions: { enabled: false },
@@ -23,7 +61,8 @@ export default defineConfig({
         icons: [],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,woff2}"]
+        globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+        sourcemap: true,
       },
     }),
   ],
@@ -36,23 +75,30 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname, "client"),
   server: {
-    sourcemapIgnoreList: () => false, // Show all source files in DevTools
+    sourcemapIgnoreList: () => false,
+  },
+  css: {
+    devSourcemap: true,
+  },
+  esbuild: {
+    sourcemap: true,
   },
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    sourcemap: true, // 🗺️ Generate source maps for debugging
+    sourcemap: true,
+    minify: "esbuild",
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react')) return 'vendor-react';
-            if (id.includes('@tanstack')) return 'vendor-query';
-            if (id.includes('lightweight-charts')) return 'charts';
-            if (id.includes('lucide-react')) return 'icons';
+        sourcemap: true,
+        manualChunks(id: string) {
+          if (id.includes("node_modules")) {
+            if (id.includes("react")) return "vendor-react";
+            if (id.includes("@tanstack")) return "vendor-query";
+            if (id.includes("lightweight-charts")) return "charts";
+            if (id.includes("lucide-react")) return "icons";
           }
-          return undefined;
         },
       },
     },

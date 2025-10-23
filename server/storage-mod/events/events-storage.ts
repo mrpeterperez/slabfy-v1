@@ -1,7 +1,7 @@
 import { BaseStorage } from "../base/base-storage";
 import type { IEventsStorage } from "./types";
-import { events, salesTransactions, purchaseTransactions } from "@shared/schema";
-import { sql, eq } from "drizzle-orm";
+import { events, salesTransactions, purchaseTransactions, cardShows } from "@shared/schema";
+import { sql, eq, ilike, or, and, gte, desc } from "drizzle-orm";
 
 export class EventsStorage extends BaseStorage implements IEventsStorage {
   async createEvent(event: any): Promise<any> {
@@ -169,14 +169,55 @@ export class EventsStorage extends BaseStorage implements IEventsStorage {
     };
   }
 
-  // Card shows: keep stubs to match current behavior
-  async searchCardShows(_query: string, _limit: number = 50): Promise<any[]> {
-    return [];
-  }
-  async getUpcomingCardShows(_limit: number = 50): Promise<any[]> {
-    return [];
-  }
-  async bulkInsertCardShows(shows: any[]): Promise<any[]> {
+  // Card shows: database search implementation
+  async searchCardShows(query: string, limit: number = 50): Promise<any[]> {
+    const shows = await this.db
+      .select()
+      .from(cardShows)
+      .where(
+        and(
+          eq(cardShows.isActive, true),
+          or(
+            ilike(cardShows.name, `%${query}%`),
+            ilike(cardShows.city, `%${query}%`),
+            ilike(cardShows.state, `%${query}%`),
+            ilike(cardShows.venueName, `%${query}%`)
+          )
+        )
+      )
+      .orderBy(desc(cardShows.dateStart))
+      .limit(limit);
+    
     return shows;
+  }
+  
+  async getUpcomingCardShows(limit: number = 50): Promise<any[]> {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const shows = await this.db
+      .select()
+      .from(cardShows)
+      .where(
+        and(
+          eq(cardShows.isActive, true),
+          gte(cardShows.dateStart, today)
+        )
+      )
+      .orderBy(cardShows.dateStart)
+      .limit(limit);
+    
+    return shows;
+  }
+  
+  async bulkInsertCardShows(shows: any[]): Promise<any[]> {
+    if (shows.length === 0) return [];
+    
+    const inserted = await this.db
+      .insert(cardShows)
+      .values(shows)
+      .onConflictDoNothing()
+      .returning();
+    
+    return inserted;
   }
 }

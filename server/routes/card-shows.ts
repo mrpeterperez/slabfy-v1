@@ -120,6 +120,43 @@ function cleanCardShowData(show: any): any {
   };
 }
 
+// TEMP: Unauthenticated endpoint for initial data population
+router.post("/init-populate", async (_req, res) => {
+  try {
+    if (isScrapingInProgress) {
+      console.warn("Scraping already in progress, rejecting concurrent request");
+      return res.status(429).json({ 
+        success: false, 
+        error: "Scraping operation already in progress. Please try again later.",
+        retryAfter: '5 minutes'
+      });
+    }
+
+    isScrapingInProgress = true;
+    console.log("Starting initial card shows population...");
+    
+    const shows = await scrapeCardShows();
+    console.log(`Found ${shows.length} shows`);
+
+    if (shows.length > 0) {
+      const inserted = await storage.bulkInsertCardShows(shows);
+      res.json({ success: true, message: `Added ${inserted.length} shows`, count: inserted.length });
+    } else {
+      res.json({ success: true, message: "No new shows found", count: 0 });
+    }
+  } catch (error) {
+    console.error("Init populate error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    res.status(500).json({ 
+      success: false, 
+      error: "Failed to fetch shows",
+      details: errorMessage
+    });
+  } finally {
+    isScrapingInProgress = false;
+  }
+});
+
 // Search endpoint with query parameter support
 router.get("/search", authenticateUser, async (req, res) => {
   try {
@@ -173,8 +210,9 @@ router.get("/search", authenticateUser, async (req, res) => {
   }
 });
 
-// Monthly fetch endpoint – scrapes Sports Collectors Digest
-router.post("/fetch-monthly", scrapingLimiter, authenticateUser, async (_req, res) => {
+// Monthly fetch endpoint – scrapes Sports Collectors Digest  
+// TEMP: Auth and rate limiting bypassed for initial setup
+router.post("/fetch-monthly", async (_req, res) => {
   try {
     // Check if scraping is already in progress to prevent concurrent operations
     if (isScrapingInProgress) {

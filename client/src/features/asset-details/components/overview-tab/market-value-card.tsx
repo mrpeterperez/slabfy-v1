@@ -12,6 +12,7 @@ import { SalesRecord } from "@shared/sales-types";
 import ConfidenceMeter from "./confidence-rating/confidence-meter";
 import { LiquidityIndicator } from "@/components/ui/metrics/liquidity-indicator";
 import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
+import { useAuth } from "@/components/auth-provider";
 
 interface RealTimePricingData {
   averagePrice: number;
@@ -34,6 +35,8 @@ const MarketValueCard = ({
   relatedAssets = [],
   salesData,
 }: MarketValueCardProps) => {
+  const { user, loading: authLoading } = useAuth();
+  
   // Calculate total assets owned (like shares)
   const assetsOwned = 1 + relatedAssets.length;
 
@@ -45,7 +48,7 @@ const MarketValueCard = ({
       if (!response.ok) throw new Error("Failed to fetch pricing data");
       return response.json();
     },
-    enabled: !!asset.id,
+    enabled: !!asset.id && !authLoading,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,

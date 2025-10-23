@@ -68,7 +68,7 @@ export function PortfolioTableSimpleV0({ assets, visible }: Props) {
                     onClick={() => { window.location.href = `/assets/${a.id}`; }}
                   >
                     <div className="h-14 w-10 bg-muted rounded overflow-hidden flex items-center justify-center text-[10px] text-muted-foreground group-hover:ring-2 group-hover:ring-primary">
-                      {a.psaImageFrontUrl ? <img src={a.psaImageFrontUrl} alt="card" className="object-cover w-full h-full" /> : 'IMG'}
+                      {a.psaImageFrontUrl ? <img src={a.psaImageFrontUrl} alt="card" className=""object-cover" w-full h-full" /> : 'IMG'}
                     </div>
                     <div className="leading-tight max-w-[22ch]">
                       <AssetSummary

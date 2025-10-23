@@ -103,12 +103,15 @@ export function EventDetailHeader({
                 {/* Show Logo */}
                 <Avatar className="h-10 w-10">
                   {event.logoUrl ? (
-                    <AvatarImage src={event.logoUrl} alt={event.name} />
+                    <AvatarImage src={event.logoUrl} alt={event.name} className="object-cover" />
                   ) : (
                     <AvatarFallback>
                       {(event.name || "").slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   )}
+                  <AvatarFallback>
+                    {(event.name || "").slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
                 {/* Event Title and Date (single line) */}
                 <div className="hidden md:flex items-center min-w-0 gap-3">

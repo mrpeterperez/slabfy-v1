@@ -192,7 +192,7 @@ export function SettingsSection({ consignment, consignor }: SettingsSectionProps
   // use shared helper for status badge classes
 
   return (
-    <div className="flex-1 min-w-0 w-full max-w-full">
+    <div className="flex-1 min-w-0 w-full max-w-full pb-48">
       {/* Toolbar header - matches EventOrdersPage structure */}
       <div className="hidden lg:block border-b border-border px-8 py-4 min-h-[58px]">
         <div className="flex items-center justify-between gap-4 w-full">

@@ -1,12 +1,11 @@
 // 🤖 INTERNAL NOTE:
-// Purpose: Full-screen dialog for creating new events with card show search functionality
+// Purpose: Simplified full-screen dialog for creating new events
 // Exports: AddEventDialog component
 // Feature: events
-// Dependencies: React state management, card shows API, date formatting
+// Dependencies: React state management, date formatting
 
 import { useState, useEffect, useRef } from "react";
-import { X, MapPin, Search, Upload } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { X, MapPin, Upload } from "lucide-react";
 import { useCreateEvent } from "../../hooks/use-events";
 import { useAuth } from "@/components/auth-provider";
 import { useToast } from "@/hooks/use-toast";
@@ -14,44 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-// CardShow type definition
-interface CardShow {
-  id: string;
-  name: string;
-  dateStart: string;
-  dateEnd?: string | null;
-  location: string;
-  venue?: string | null;
-  description?: string | null;
-}
-
 interface AddEventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-// Helper function to format date for display (e.g., "2025-08-15" -> "Aug 15, 2025")
-const formatDateForDisplay = (dateString: string): string => {
-  if (!dateString) return '';
-  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
-  try {
-    return new Date(dateString).toLocaleDateString('en-US', options);
-  } catch (e) {
-    return dateString;
-  }
-};
-
-// Helper function to parse display date back to YYYY-MM-DD for internal use
-const parseDateForInternal = (displayDate: string): string => {
-  if (!displayDate) return '';
-  try {
-    const date = new Date(displayDate);
-    if (isNaN(date.getTime())) return '';
-    return date.toISOString().split('T')[0];
-  } catch (e) {
-    return '';
-  }
-};
 
 export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
   // State for form data
@@ -63,12 +28,6 @@ export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
     description: '',
   });
 
-  // State for event search and selection
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isCustomEvent, setIsCustomEvent] = useState(false);
-  const [isEventSelectedOrCustom, setIsEventSelectedOrCustom] = useState(false);
-
   // State for logo upload
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -79,24 +38,8 @@ export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   const createEvent = useCreateEvent();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
-
-  // Search card shows from database
-  const { data: cardShows = [], isLoading: searchLoading } = useQuery({
-    queryKey: ["card-shows-search", searchTerm],
-    queryFn: async () => {
-      if (!searchTerm || searchTerm.length < 2) return [];
-      
-      const response = await fetch(`/api/card-shows/search?q=${encodeURIComponent(searchTerm)}`);
-      if (!response.ok) throw new Error("Failed to search card shows");
-      
-      const data = await response.json();
-      return data.shows || [];
-    },
-    enabled: !!(searchTerm && searchTerm.length >= 2),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
 
   // Effect to manage focus when dialog opens
   useEffect(() => {
@@ -105,43 +48,9 @@ export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
     }
   }, [open]);
 
-  // Compute filtered events directly instead of using state
-  const filteredEvents = searchTerm.length > 0 && showSuggestions ? cardShows : [];
-  const isCustomEventShown = cardShows.length === 0 && searchTerm.length > 0;
-
   // Handle changes for standard input fields
   const handleInputChange = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  // Handle date input change (text field)
-  const handleDateInputChange = (field: 'startDate' | 'endDate', value: string) => {
-    const parsedDate = parseDateForInternal(value);
-    setFormData((prev) => ({ ...prev, [field]: parsedDate }));
-  };
-
-  // Handle event selection from suggestions
-  const handleSelectEvent = (event: CardShow) => {
-    setFormData((prev) => ({
-      ...prev,
-      eventName: event.name,
-      location: event.location,
-      startDate: event.dateStart,
-      endDate: event.dateEnd || '',
-      description: event.description || '',
-    }));
-    setSearchTerm(event.name);
-    setShowSuggestions(false);
-    setIsCustomEvent(false);
-    setIsEventSelectedOrCustom(true);
-  };
-
-  // Handle adding a custom event
-  const handleAddCustomEvent = () => {
-    setFormData((prev) => ({ ...prev, eventName: searchTerm }));
-    setIsCustomEvent(true);
-    setShowSuggestions(false);
-    setIsEventSelectedOrCustom(true);
   };
 
   // Handle logo file selection
@@ -322,10 +231,6 @@ export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
       location: '',
       description: '',
     });
-    setSearchTerm('');
-    setShowSuggestions(false);
-    setIsCustomEvent(false);
-    setIsEventSelectedOrCustom(false);
     setLogoPreview(null);
     setLogoFile(null);
   };
@@ -369,184 +274,118 @@ export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
             Add New Show
           </h1>
 
-          {/* Event Name Search/Input Section */}
-          <section className="mb-6 sm:mb-8">
-            <h2 className="text-lg font-medium text-foreground mb-2 sm:mb-3">Show Name</h2>
-            <div className="relative w-full">
+          {/* Event Details Section */}
+          <section className="space-y-4 sm:space-y-6 mb-6 sm:mb-8">
+            {/* Event Name */}
+            <div>
+              <label htmlFor="eventName" className="block text-sm font-medium text-foreground mb-2">
+                Show Name
+              </label>
               <Input
+                id="eventName"
                 type="text"
-                placeholder="Search by name or create a new show"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setShowSuggestions(true);
-                }}
-                onFocus={() => setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                placeholder="e.g., Front Row Sports Card Show"
+                value={formData.eventName}
+                onChange={(e) => handleInputChange('eventName', e.target.value)}
                 size="lg"
-                className="pr-10"
-                aria-label="Search or create show name"
               />
-              <Search
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none"
-                aria-hidden="true"
-              />
+            </div>
 
-              {showSuggestions && (searchTerm.length > 0 || filteredEvents.length > 0) && (
-                <div className="absolute z-10 w-full bg-card border border-border rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
-                  {searchLoading ? (
-                    <div className="p-3 text-center">
-                      <div className="text-muted-foreground">Searching shows...</div>
-                    </div>
-                  ) : filteredEvents.length > 0 ? (
-                    filteredEvents.map((event: CardShow) => (
-                      <button
-                        key={event.id}
-                        onClick={() => handleSelectEvent(event)}
-                        className="w-full text-left p-3 hover:bg-muted focus:bg-muted outline-none block"
-                      >
-                        <p className="font-medium text-foreground">{event.name}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatDateForDisplay(event.dateStart)}
-                          {event.dateEnd && event.dateEnd !== event.dateStart && ` - ${formatDateForDisplay(event.dateEnd)}`}
-                          {event.location && ` • ${event.location}`}
-                        </p>
-                      </button>
-                    ))
-                  ) : searchTerm.length > 0 ? (
-                    <div className="p-3 text-muted-foreground text-center">
-                      No shows found.
-                      <Button
-                        onClick={handleAddCustomEvent}
-                        onMouseDown={(e) => e.preventDefault()}
-                        className="w-full mt-2"
-                      >
-                        Add custom show "{searchTerm}"
-                      </Button>
-                    </div>
-                  ) : null}
+            {/* Start Date */}
+            <div>
+              <label htmlFor="startDate" className="block text-sm font-medium text-foreground mb-2">
+                Start Date
+              </label>
+              <div className="relative">
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => handleInputChange('startDate', e.target.value)}
+                  size="lg"
+                  className=""
+                />
+              </div>
+            </div>
+
+            {/* End Date */}
+            <div>
+              <label htmlFor="endDate" className="block text-sm font-medium text-foreground mb-2">
+                End Date (Optional)
+              </label>
+              <div className="relative">
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => handleInputChange('endDate', e.target.value)}
+                  size="lg"
+                  className=""
+                />
+              </div>
+            </div>
+
+            {/* Location */}
+            <div>
+              <label htmlFor="location" className="block text-sm font-medium text-foreground mb-2">
+                Location
+              </label>
+              <div className="relative">
+                <Input
+                  id="location"
+                  type="text"
+                  placeholder="e.g., Los Angeles Convention Center"
+                  value={formData.location}
+                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  size="lg"
+                  className="pr-10"
+                />
+                <MapPin
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none"
+                  aria-hidden="true"
+                />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-foreground mb-2">
+                Description (optional)
+              </label>
+              <Textarea
+                id="description"
+                placeholder="Add any additional notes or details about the event..."
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                rows={4}
+                className="resize-none"
+              />
+            </div>
+
+            {/* Logo Upload */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Logo (optional)</label>
+              <div className="flex items-center gap-4">
+                <div className="w-24 h-24 rounded-lg border border-border bg-secondary/5 overflow-hidden flex items-center justify-center">
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <span
+                      className="text-3xl font-semibold text-muted-foreground select-none"
+                      aria-label={`Placeholder for ${formData.eventName || 'event'}`}
+                    >
+                      {(formData.eventName?.trim()?.charAt(0)?.toUpperCase() || 'E')}
+                    </span>
+                  )}
                 </div>
-              )}
+                <label className="inline-flex items-center gap-2 px-3 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted/50">
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleLogoSelect(e.target.files)} />
+                  <Upload className="w-4 h-4" />
+                  <span className="text-sm">{uploading ? 'Uploading…' : 'Upload Logo'}</span>
+                </label>
+              </div>
             </div>
           </section>
-
-          {/* Event Details Section */}
-          {isEventSelectedOrCustom && (
-            <section className="space-y-4 sm:space-y-6 mb-6 sm:mb-8">
-              <h2 className="text-lg font-medium text-foreground">Event Details</h2>
-
-              {/* Event Name */}
-              <div>
-                <label htmlFor="eventName" className="block text-sm font-medium text-foreground mb-2">
-                  Event Name
-                </label>
-                <Input
-                  id="eventName"
-                  type="text"
-                  placeholder="e.g., Front Row Sports Card Show"
-                  value={formData.eventName}
-                  onChange={(e) => handleInputChange('eventName', e.target.value)}
-                  size="lg"
-                  readOnly={!isCustomEvent && searchTerm === formData.eventName && formData.eventName !== ''}
-                />
-              </div>
-
-              {/* Start Date */}
-              <div>
-                <label htmlFor="startDate" className="block text-sm font-medium text-foreground mb-2">
-                  Start Date
-                </label>
-                <div className="relative">
-                  <Input
-                    id="startDate"
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => handleInputChange('startDate', e.target.value)}
-                    size="lg"
-                    className=""
-                  />
-                </div>
-              </div>
-
-              {/* End Date */}
-              <div>
-                <label htmlFor="endDate" className="block text-sm font-medium text-foreground mb-2">
-                  End Date (Optional)
-                </label>
-                <div className="relative">
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) => handleInputChange('endDate', e.target.value)}
-                    size="lg"
-                    className=""
-                  />
-                </div>
-              </div>
-
-              {/* Location */}
-              <div>
-                <label htmlFor="location" className="block text-sm font-medium text-foreground mb-2">
-                  Location
-                </label>
-                <div className="relative">
-                  <Input
-                    id="location"
-                    type="text"
-                    placeholder="e.g., Los Angeles Convention Center"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    size="lg"
-                    className="pr-10"
-                  />
-                  <MapPin
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none"
-                    aria-hidden="true"
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-foreground mb-2">
-                  Description (optional)
-                </label>
-                <Textarea
-                  id="description"
-                  placeholder="Add any additional notes or details about the event..."
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  rows={4}
-                  className="resize-none"
-                />
-              </div>
-
-              {/* Logo Upload */}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Logo (optional)</label>
-                <div className="flex items-center gap-4">
-                  <div className="w-24 h-24 rounded-lg border border-border bg-secondary/5 overflow-hidden flex items-center justify-center">
-                    {logoPreview ? (
-                      <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
-                    ) : (
-                      <span
-                        className="text-3xl font-semibold text-muted-foreground select-none"
-                        aria-label={`Placeholder for ${formData.eventName || 'event'}`}
-                      >
-                        {(formData.eventName?.trim()?.charAt(0)?.toUpperCase() || 'E')}
-                      </span>
-                    )}
-                  </div>
-                  <label className="inline-flex items-center gap-2 px-3 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted/50">
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleLogoSelect(e.target.files)} />
-                    <Upload className="w-4 h-4" />
-                    <span className="text-sm">{uploading ? 'Uploading…' : 'Upload Logo'}</span>
-                  </label>
-                </div>
-              </div>
-            </section>
-          )}
 
           {/* Bottom spacing */}
           <div className="h-16"></div>
