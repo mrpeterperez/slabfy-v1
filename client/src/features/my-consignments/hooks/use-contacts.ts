@@ -12,12 +12,12 @@ import { InsertContact } from "@shared/schema";
  * Hook to get all contacts for the current user
  */
 export const useContacts = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   return useQuery({
     queryKey: ["/api/contacts", user?.id],
     queryFn: getContacts,
-    enabled: !!user?.id,
+    enabled: !!user?.id && !authLoading,
     staleTime: 5 * 60 * 1000, // 5 minutes - contacts don't change frequently
     refetchOnWindowFocus: true, // Refetch when returning to tab
     refetchOnMount: true, // Refetch when component remounts
@@ -29,7 +29,7 @@ export const useContacts = () => {
  */
 export const useCreateContact = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   return useMutation({
     mutationFn: (data: InsertContact) => createContact(data),
@@ -48,7 +48,7 @@ export const useCreateContact = () => {
  */
 export const useUpdateContact = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   return useMutation({
     mutationFn: ({ contactId, data }: { contactId: string; data: Partial<InsertContact> }) => 
@@ -76,7 +76,7 @@ export const useUpdateContact = () => {
  */
 export const useDeleteContact = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   return useMutation({
     mutationFn: (contactId: string) => deleteContact(contactId),

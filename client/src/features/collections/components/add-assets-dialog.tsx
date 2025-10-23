@@ -64,7 +64,7 @@ export function AddAssetsDialog({
   const [sortColumn, setSortColumn] = useState<'asset' | 'qty' | 'value' | 'type'>('asset');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const addAssetToCollection = useAddAssetToCollection();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   
   // Refs for focus management
@@ -86,7 +86,7 @@ export function AddAssetsDialog({
       const response = await apiRequest("GET", `/api/consignments/user/${user.id}`);
       return response.json();
     },
-    enabled: open && !!user?.id // Only fetch when dialog is open and user is authenticated
+    enabled: open && !!user?.id && !authLoading // Only fetch when dialog is open and user is authenticated
   });
 
   // Fetch all consignment assets from all consignments

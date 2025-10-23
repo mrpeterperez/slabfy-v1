@@ -54,7 +54,7 @@ export function EventCart({
   children,
   onTotalsChange
 }: EventCartProps) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   // Discount state
   const [showDiscount, setShowDiscount] = useState(false);

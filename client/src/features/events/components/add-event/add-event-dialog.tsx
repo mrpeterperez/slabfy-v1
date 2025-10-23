@@ -79,7 +79,7 @@ export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   const createEvent = useCreateEvent();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
   // Search card shows from database

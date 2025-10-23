@@ -46,7 +46,7 @@ interface BasicAsset {
 }
 
 export function AddToEventDialog({ open, onOpenChange, event }: AddToEventDialogProps) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [tab, setTab] = useState("assets");
@@ -141,7 +141,7 @@ export function AddToEventDialog({ open, onOpenChange, event }: AddToEventDialog
         certNumber: a.certNumber ?? a.certificateNumber ?? a.cert ?? a.certNo ?? a.certno ?? null,
       })) as BasicAsset[];
     },
-    enabled: open && !!user?.id,
+    enabled: open && !!user?.id && !authLoading,
   });
 
   // Load consignment assets (all consignments for the user)
@@ -152,7 +152,7 @@ export function AddToEventDialog({ open, onOpenChange, event }: AddToEventDialog
       const res = await apiRequest("GET", `/api/consignments/user/${user.id}`);
       return res.json();
     },
-    enabled: open && !!user?.id,
+    enabled: open && !!user?.id && !authLoading,
   });
 
   const { data: consignmentAssets = [] } = useQuery({
@@ -292,7 +292,7 @@ export function AddToEventDialog({ open, onOpenChange, event }: AddToEventDialog
       const res = await apiRequest("GET", `/api/collections/user/${user.id}`);
       return res.json();
     },
-    enabled: open && !!user?.id,
+    enabled: open && !!user?.id && !authLoading,
   });
 
   // Fetch assets for each collection to determine how many would be new for this event

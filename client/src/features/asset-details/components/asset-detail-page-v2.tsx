@@ -124,7 +124,7 @@ export const AssetDetailPageV2 = ({ providedAsset }: { providedAsset?: Asset }) 
       if (!response.ok) return null;
       return response.json();
     },
-    enabled: !!user?.id && !!globalAssetIdForOwnership,
+    enabled: !!user?.id && !!globalAssetIdForOwnership && !authLoading,
     staleTime: 2 * 60 * 1000, // Fresh for 2 minutes
   });
 

@@ -43,7 +43,7 @@ const LOCKED_FIELDS: (keyof FormValues)[] = [
 ];
 
 export function VerifiedEditAssetDialog({ asset, open, onOpenChange }: VerifiedEditAssetDialogProps) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 

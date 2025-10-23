@@ -44,7 +44,7 @@ export const EditAssetModal = ({
   isPsaGraded = false,
 }: EditAssetModalProps) => {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   // Always initialize with basic-info as the default tab
   const [activeTab, setActiveTab] = useState("basic-info");

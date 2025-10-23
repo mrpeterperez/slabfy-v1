@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 const key = { offers: ["buying-desk", "offers"] as const };
 
 export function useBuyOffersV0(params?: { archived?: boolean; eventId?: string }) {
-	const { user } = useAuth();
+	const { user, loading: authLoading } = useAuth();
 	return useQuery({
 		queryKey: [...key.offers, { archived: params?.archived, eventId: params?.eventId }],
 		queryFn: async () => {
@@ -45,7 +45,7 @@ export function useBuyOffersV0(params?: { archived?: boolean; eventId?: string }
 			}));
 			return mapped;
 		},
-		enabled: !!user,
+		enabled: !!user && !authLoading,
 		staleTime: 60_000,
 	});
 }

@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/queryClient";
 const key = { sellers: ["buying-desk", "sellers"] as const };
 
 export function useSellersV0() {
-	const { user } = useAuth();
+	const { user, loading: authLoading } = useAuth();
 	return useQuery({
 		queryKey: key.sellers,
 		queryFn: async () => {
@@ -22,7 +22,7 @@ export function useSellersV0() {
 				description: item.contact?.notes,
 			})) as SellerWithContact[];
 		},
-		enabled: !!user,
+		enabled: !!user && !authLoading,
 		staleTime: 5 * 60 * 1000, // 5 minutes
 		refetchOnWindowFocus: true, // Refetch when returning to tab
 		refetchOnMount: true, // Refetch when component remounts

@@ -223,7 +223,7 @@ export const AddAssetModalV2 = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [_, navigate] = useLocation();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   // State for ownership detection dialog
   const [ownershipDialog, setOwnershipDialog] = useState<{

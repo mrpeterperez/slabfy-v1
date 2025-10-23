@@ -62,7 +62,7 @@ function TableLoadingSkeleton() {
 
 export function AssetsSection({ collection }: AssetsSectionProps) {
   const [addAssetsOpen, setAddAssetsOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   // Get collection assets with aggressive caching
   const { data: assets = [], isLoading: assetsLoading } = useCollectionAssets(collection.id);
@@ -73,7 +73,7 @@ export function AssetsSection({ collection }: AssetsSectionProps) {
   // Get user assets for the add dialog
   const { data: userAssets = [] } = useQuery<Asset[]>({
     queryKey: [`/api/user/${user?.id}/assets`],
-    enabled: !!user?.id,
+    enabled: !!user?.id && !authLoading,
   });
 
   // Optimized pricing data fetch with better caching and parallel loading

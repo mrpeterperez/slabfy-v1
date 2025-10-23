@@ -50,7 +50,7 @@ export const ManualAddAssetDialog = ({
   const setOpen = setControlledOpen || setUncontrolledOpen;
 
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
 
   // Form schema with validation - use the shared schema to ensure consistency

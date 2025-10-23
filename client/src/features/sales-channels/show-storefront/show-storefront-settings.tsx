@@ -32,7 +32,7 @@ import type { StorefrontSettings } from "@shared/schema";
 type SettingsSection = "general" | "actions" | "design";
 
 export function ShowStorefrontSettings() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [_, setLocation] = useLocation();
   const { data: savedSettings, isLoading } = useStorefrontSettings();
   const updateSettings = useUpdateStorefrontSettings();
@@ -155,7 +155,7 @@ export function ShowStorefrontSettings() {
       if (!res.ok) throw new Error("Failed to fetch assets");
       return res.json();
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !authLoading,
     staleTime: 0, // Always fetch fresh
     gcTime: 0, // Don't cache
   });

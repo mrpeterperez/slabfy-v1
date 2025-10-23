@@ -261,7 +261,7 @@ export const AddConsignmentAssetModal = ({ triggerButton, open: controlledOpen, 
   };
 
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [_, navigate] = useLocation();
 

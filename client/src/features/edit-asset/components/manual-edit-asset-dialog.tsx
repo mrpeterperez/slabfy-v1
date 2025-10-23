@@ -49,7 +49,7 @@ interface ManualEditAssetDialogProps {
 }
 
 export function ManualEditAssetDialog({ asset, open, onOpenChange }: ManualEditAssetDialogProps) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 

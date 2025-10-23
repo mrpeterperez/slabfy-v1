@@ -29,12 +29,12 @@ import { useToast } from "@/hooks/use-toast";
  * Hook to get all consignments for the current user with optional archived or status filter
  */
 export const useConsignments = (archived?: boolean, status?: string) => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   return useQuery({
     queryKey: ["/api/consignments", user?.id, { archived, status }],
     queryFn: () => getConsignments(user!.id, archived, status),
-    enabled: !!user?.id,
+    enabled: !!user?.id && !authLoading,
     staleTime: 60_000, // 1 minute - balance between freshness and performance
     refetchOnWindowFocus: true, // Refetch when user returns to tab
     refetchOnMount: true, // Refetch when component mounts
@@ -60,7 +60,7 @@ export const useConsignment = (consignmentId: string) => {
  */
 export const useCreateConsignment = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   return useMutation({
     mutationFn: (data: InsertConsignment & { consignor: InsertContact }) => 
@@ -85,7 +85,7 @@ export const useCreateConsignment = () => {
  */
 export const useUpdateConsignment = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateConsignment }) => 
@@ -108,7 +108,7 @@ export const useUpdateConsignment = () => {
  */
 export const useDeleteConsignment = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   return useMutation({
     mutationFn: (consignmentId: string) => deleteConsignment(consignmentId),
@@ -158,11 +158,11 @@ export const useUpdateConsignor = (consignmentId: string) => {
  * Hook to get consignment status counts for the current user
  */
 export const useConsignmentStatusCounts = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   return useQuery<ConsignmentStatusCounts>({
     queryKey: ["/api/consignments/status-counts", user?.id],
     queryFn: () => getConsignmentStatusCounts(),
-    enabled: !!user?.id,
+    enabled: !!user?.id && !authLoading,
     staleTime: 60_000,
   });
 };
@@ -171,7 +171,7 @@ export const useConsignmentStatusCounts = () => {
  * Hook to get the next auto-generated consignment title
  */
 export const useNextConsignmentTitle = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   // Gate until user object resolved to avoid premature 401s that thrash retries
   const enabled = !!user?.id; 
   
@@ -192,11 +192,11 @@ export const useNextConsignmentTitle = () => {
  * Hook to get aggregate consignment stats for the current user
  */
 export const useConsignmentStats = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   return useQuery({
     queryKey: ["/api/consignments/stats", user?.id],
     queryFn: () => getConsignmentStats(),
-    enabled: !!user?.id,
+    enabled: !!user?.id && !authLoading,
     staleTime: 60_000,
   });
 };
@@ -205,11 +205,11 @@ export const useConsignmentStats = () => {
  * Hook to get per-consignment summaries (revenue/pipeline/profit)
  */
 export const useConsignmentSummaries = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   return useQuery<ConsignmentSummary[]>({
     queryKey: ["/api/consignments/summary", user?.id],
     queryFn: () => getConsignmentSummaries(),
-    enabled: !!user?.id,
+    enabled: !!user?.id && !authLoading,
     staleTime: 60_000,
   });
 };
@@ -219,7 +219,7 @@ export const useConsignmentSummaries = () => {
  */
 export const useArchiveConsignment = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
   return useMutation({
@@ -261,7 +261,7 @@ export const useArchiveConsignment = () => {
  */
 export const useUnarchiveConsignment = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
   return useMutation({
@@ -303,7 +303,7 @@ export const useUnarchiveConsignment = () => {
  */
 export const useBulkArchiveConsignments = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
   return useMutation({
@@ -355,7 +355,7 @@ export const useBulkArchiveConsignments = () => {
  */
 export const useBulkUnarchiveConsignments = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
   return useMutation({
@@ -407,7 +407,7 @@ export const useBulkUnarchiveConsignments = () => {
  */
 export const useBulkDeleteConsignments = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
   return useMutation({

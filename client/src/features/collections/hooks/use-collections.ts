@@ -24,11 +24,11 @@ import { type InsertCollection, type UpdateCollection, type InsertCollectionAsse
  * Hook to get all collections
  */
 export const useCollections = (archived?: boolean) => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   return useQuery({
     queryKey: ["/api/collections", archived],
     queryFn: () => getCollections(archived),
-    enabled: !!user,
+    enabled: !!user && !authLoading,
     // If the API returns null/undefined for no results, keep UI stable
     placeholderData: [] as any,
     select: (data) => Array.isArray(data) ? data : [],
@@ -41,11 +41,11 @@ export const useCollections = (archived?: boolean) => {
  * Hook to get collections summary
  */
 export const useCollectionsSummary = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   return useQuery({
     queryKey: ["/api/collections/summary"],
     queryFn: getCollectionsSummary,
-    enabled: !!user,
+    enabled: !!user && !authLoading,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     // Instant zeros while fetching
@@ -178,11 +178,11 @@ export const useDeleteCollection = () => {
  * Hook to get collection assets
  */
 export const useCollectionAssets = (collectionId: string) => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   return useQuery({
     queryKey: ["/api/collections", collectionId, "assets", user?.id],
     queryFn: () => getCollectionAssetsWithOwnership(collectionId, user?.id || ""),
-    enabled: !!collectionId && !!user?.id,
+    enabled: !!collectionId && !!user?.id && !authLoading,
     staleTime: 10 * 60 * 1000, // 10 minutes (increased for better performance)
     gcTime: 60 * 60 * 1000, // 1 hour cache retention
     refetchOnMount: false, // Don't refetch when component mounts
