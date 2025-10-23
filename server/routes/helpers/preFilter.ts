@@ -159,11 +159,47 @@ export function preFilterSales(sales: EbaySale[], targetCard: string): EbaySale[
     if (!target.isAutograph && isAutoInTitle && !isNonAuto) return false;
     if (target.isAutograph && !isAutoInTitle) return false;
 
-    // --- Variant tokens ---
-    for (const v of target.variantTokens) {
-      if (!new RegExp(`\\b${v}\\b`).test(n)) return false;
+    // --- Variant tokens (RELAXED - let AI handle this) ---
+    // Removed strict variant matching - too conservative
+    // AI will handle "Lakers Team Set" vs "Team Insert" variations
+
+    return true;
+  });
+}
+
+// Relaxed version for fallback when AI fails
+export function relaxedPreFilter(sales: EbaySale[], targetCard: string): EbaySale[] {
+  const target = parseTargetCard(targetCard);
+
+  return sales.filter(sale => {
+    const n = sale.title?.toLowerCase() || "";
+
+    // Only check CRITICAL fields - much more permissive!
+    
+    // --- Grader + grade (if specified) ---
+    if (target.grader && target.grade) {
+      const graderWord = target.grader.toLowerCase();
+      const graderOk = new RegExp(`\\b${graderWord}\\b`).test(n);
+      if (!graderOk) return false;
+      
+      // Allow fuzzy grade matching
+      const pureNumeric = /^\d+$/.test(target.grade);
+      if (pureNumeric) {
+        const hasGrade = new RegExp(`${graderWord}[^a-z0-9]{0,8}${target.grade}`).test(n);
+        if (!hasGrade) return false;
+      }
     }
 
+    // --- Card number (if specified) ---
+    if (target.cardNumber) {
+      const num = target.cardNumber.toLowerCase();
+      const hasNumber = new RegExp(`(?:#|no\\.?|card)\\s*${num}|\\b${num}\\b`).test(n);
+      if (!hasNumber) return false;
+    }
+
+    // Skip variant matching, set matching, year exact matching
+    // Let AI handle the nuances!
+    
     return true;
   });
 }

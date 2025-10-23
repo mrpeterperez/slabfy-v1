@@ -36,229 +36,126 @@ const cutOutliers = (sales: Sale[]) => {
   );
 };
 
-/* ---------- Claude-Powered Smart Filter ---------- */
-function smartFilter(targetCard: string, sales: Sale[]): Sale[] {
+/* ---------- Groq AI-Powered Smart Filter ---------- */
+async function groqAIFilter(targetCard: string, sales: Sale[]): Promise<Sale[]> {
+  if (!API_KEY) {
+    throw new Error("GROQ_API_KEY not configured");
+  }
+
+  const prompt = `You are an expert sports card matching system. Analyze if eBay sales match the target card.
+
+TARGET CARD: "${targetCard}"
+
+MATCHING RULES:
+1. Player name MUST match (allow minor variations: "Kobe Bryant" = "K. Bryant")
+2. Year MUST match (1996 = 1996-97 = 96-97)
+3. Set MUST match (fuzzy OK: "Collector's Choice" = "Collectors Choice")
+4. Card number MUST match exactly
+5. Grade MUST match (PSA 10 = PSA GEM MT 10 = GEM MINT 10)
+6. Grading company MUST match (PSA only, not BGS/SGC/CGC)
+
+EXCLUDE:
+- Different players
+- Different years (±1 year tolerance)
+- Different grades
+- Raw/ungraded cards
+- Lots/bundles (unless 1-2 cards)
+- Autographed versions (unless target has "auto")
+- Numbered parallels (unless target has /XX)
+- Wrong card numbers
+
+SALES TO ANALYZE:
+${sales.map((s, i) => `${i}. "${s.title}" - $${s.final_price}`).join('\n')}
+
+Return JSON with array of matching indices only:
+{"matches": [0, 2, 5, ...]}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+  try {
+    const response = await fetch(BASE_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: DEF_MODEL,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }],
+        temperature: 0.1,
+        max_tokens: 500,
+        response_format: { type: 'json_object' }
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Groq API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error('No content in Groq response');
+    }
+
+    const result = JSON.parse(content);
+    const matchIndices = result.matches || [];
+    
+    return matchIndices.map((idx: number) => sales[idx]).filter(Boolean);
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
+/* ---------- Fallback: Relaxed Local Filter ---------- */
+function relaxedLocalFilter(targetCard: string, sales: Sale[]): Sale[] {
   const target = targetCard.toLowerCase();
   
-  // Extract target components
-  const targetYear = target.match(/\b(19|20)\d{2}\b/)?.[0];
-  const targetGrader = target.match(/\b(psa|bgs|sgc|cgc)\b/i)?.[0];
-  const targetGrade = target.match(/psa\s*(?:gem\s*mt\s*)?(\d+)|bgs\s*(\d+(?:\.\d)?)|sgc\s*(\d+)|cgc\s*(\d+(?:\.\d)?)/i)?.[1] || 
-                     target.match(/psa\s*(?:gem\s*mt\s*)?(\d+)|bgs\s*(\d+(?:\.\d)?)|sgc\s*(\d+)|cgc\s*(\d+(?:\.\d)?)/i)?.[2] ||
-                     target.match(/psa\s*(?:gem\s*mt\s*)?(\d+)|bgs\s*(\d+(?:\.\d)?)|sgc\s*(\d+)|cgc\s*(\d+(?:\.\d)?)/i)?.[3] ||
-                     target.match(/psa\s*(?:gem\s*mt\s*)?(\d+)|bgs\s*(\d+(?:\.\d)?)|sgc\s*(\d+)|cgc\s*(\d+(?:\.\d)?)/i)?.[4];
-  const targetNumber = target.match(/#(\d+)/)?.[1];
-  const targetPlayerName = extractPlayerName(target);
-  const targetSetTokens = extractSetTokens(target);
-  const targetHasSerial = /\/\d{1,4}\b/.test(target);
-  const targetSerial = target.match(/\/(\d{1,4})\b/)?.[1];
-  const targetHasAuto = /auto|signature|signed/i.test(target);
-  const targetSpecificVariant = extractVariant(target);
+  // Extract only critical components
+  const targetGrader = target.match(/\b(psa|bgs|sgc|cgc)\b/i)?.[0]?.toLowerCase();
+  const targetGrade = target.match(/(?:psa|bgs|sgc|cgc)\s*(?:gem\s*mt\s*)?(\d+(?:\.\d)?)/i)?.[1];
+  const targetNumber = target.match(/#(\w+)/i)?.[1];
 
-  const matches = sales.filter((sale, index) => {
-    const title = sale.title.toLowerCase();
-    
-    // 1. Year matching
-    if (targetYear) {
-      const saleYear = title.match(/\b(19|20)\d{2}\b/)?.[0];
-      if (saleYear && saleYear !== targetYear) {
-        return false;
-      }
-    }
-    
-    // 2. Grader & Grade matching (strict)
-    if (targetGrader && targetGrade) {
-      const graderRegex = new RegExp(`\\b${targetGrader}\\b`, 'i');
-      if (!graderRegex.test(title)) {
-        return false;
-      }
-      
-      const gradeRegex = new RegExp(`${targetGrader}\\s*(?:gem\\s*mt\\s*)?${targetGrade}`, 'i');
-      if (!gradeRegex.test(title)) {
-        return false;
-      }
-    }
-    
-    // 3. Card number matching
-    if (targetNumber) {
-      const numberRegex = new RegExp(`#${targetNumber}\\b|no\\.?\\s*${targetNumber}\\b|card\\s*${targetNumber}\\b`, 'i');
-      if (!numberRegex.test(title)) {
-        return false;
-      }
-    }
-    
-    // 4. Player name matching (fuzzy)
-    if (targetPlayerName) {
-      const playerWords = targetPlayerName.split(' ');
-      const hasAllPlayerWords = playerWords.every(word => 
-        title.includes(word) || levenshtein(word, findClosestWord(word, title)) <= 1
-      );
-      if (!hasAllPlayerWords) {
-        return false;
-      }
-    }
-    
-    // 5. Set matching (flexible)
-    if (targetSetTokens.length > 0) {
-      const hasAllSetTokens = targetSetTokens.every(token => title.includes(token));
-      if (!hasAllSetTokens) {
-        return false;
-      }
-    }
-    
-    // 6. Serial matching
-    if (targetHasSerial && targetSerial) {
-      const serialRegex = new RegExp(`\\/${targetSerial}\\b`, 'i');
-      if (!serialRegex.test(title)) {
-        return false;
-      }
-    } else if (!targetHasSerial) {
-      // Target has no serial - exclude numbered cards
-      if (/\/\d{1,4}\b/.test(title)) {
-        return false;
-      }
-    }
-    
-    // 7. Auto matching
-    if (targetHasAuto) {
-      if (!/auto|signature|signed/i.test(title)) {
-        return false;
-      }
-    } else {
-      if (/auto|signature|signed/i.test(title)) {
-        return false;
-      }
-    }
-    
-    // 8. Variant matching (smart)
-    if (targetSpecificVariant) {
-      // Target specifies variant - must match exactly
-      if (!title.includes(targetSpecificVariant.toLowerCase())) {
-        return false;
-      }
-    } else {
-      // Target has no specific variant - allow base and common variants
-      // This is the KEY FIX - we DON'T exclude variants when target doesn't specify one!
-    }
-    
-    return true;
-  });
-  
-  return matches;
-}
-
-// Helper functions
-function extractPlayerName(target: string): string | null {
-  // Simple heuristic: look for 2-3 capitalized words that aren't set/brand names
-  const excludeWords = ['panini', 'topps', 'prizm', 'chrome', 'select', 'optic', 'bowman', 'psa', 'bgs', 'sgc', 'cgc', 'wnba', 'nba', 'mlb', 'nfl'];
-  const words = target.split(/\s+/).filter(w => w.length > 2 && !excludeWords.includes(w.toLowerCase()) && !/^\d/.test(w));
-  return words.slice(0, 2).join(' ') || null;
-}
-
-function extractSetTokens(target: string): string[] {
-  const setWords = ['panini', 'topps', 'prizm', 'chrome', 'select', 'optic', 'bowman', 'monopoly', 'wnba', 'nba', 'mlb', 'nfl'];
-  return setWords.filter(word => target.includes(word.toLowerCase()));
-}
-
-function extractVariant(target: string): string | null {
-  const variants = ['silver', 'gold', 'red', 'blue', 'green', 'orange', 'purple', 'refractor', 'chrome', 'prizm', 'mojo', 'sapphire', 'icon', 'classic'];
-  for (const variant of variants) {
-    if (target.includes(variant.toLowerCase())) {
-      return variant;
-    }
-  }
-  return null;
-}
-
-function findClosestWord(word: string, text: string): string {
-  const words = text.split(/\s+/);
-  let closest = '';
-  let minDistance = Infinity;
-  
-  for (const w of words) {
-    const distance = levenshtein(word.toLowerCase(), w.toLowerCase());
-    if (distance < minDistance) {
-      minDistance = distance;
-      closest = w;
-    }
-  }
-  return closest;
-}
-
-function levenshtein(a: string, b: string): number {
-  const matrix: number[][] = [];
-  for (let i = 0; i <= b.length; i++) {
-    matrix[i] = [i];
-  }
-  for (let j = 0; j <= a.length; j++) {
-    matrix[0][j] = j;
-  }
-  for (let i = 1; i <= b.length; i++) {
-    for (let j = 1; j <= a.length; j++) {
-      if (b.charAt(i - 1) === a.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1];
-      } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
-        );
-      }
-    }
-  }
-  return matrix[b.length][a.length];
-}
-
-/* ---------- Safety Fallback Filter ---------- */
-function deterministicFallback(targetCard: string, sales: Sale[]): Sale[] {
-  
-  // Extract key components from target
-  const target = targetCard.toLowerCase();
-  const hasGrade = /psa\s*(\d+)|psa\s*(gem\s*mt\s*\d+)/i.test(target);
-  const gradeMatch = target.match(/psa\s*(?:gem\s*mt\s*)?(\d+)/i);
-  const targetGrade = gradeMatch ? gradeMatch[1] : null;
-  const cardNumberMatch = target.match(/#(\d+)/);
-  const targetNumber = cardNumberMatch ? cardNumberMatch[1] : null;
-  
-  // Extract set tokens (normalize common variations)
-  const setTokens = target
-    .replace(/\b(panini|topps|upper|deck|prizm|monopoly|wnba|nba|mlb|nfl)\b/g, match => match.toLowerCase())
-    .match(/\b(panini|topps|upper|deck|prizm|monopoly|chrome|wnba|nba|mlb|nfl|bowman|select|optic)\b/gi) || [];
-  
   return sales.filter(sale => {
     const title = sale.title.toLowerCase();
     
-    // 1. Grade matching (if target has grade)
-    if (hasGrade && targetGrade) {
-      const hasMatchingGrade = new RegExp(`psa\\s*(?:gem\\s*mt\\s*)?${targetGrade}`, 'i').test(title);
-      if (!hasMatchingGrade) return false;
+    // 1. Grader match (if specified)
+    if (targetGrader && !new RegExp(`\\b${targetGrader}\\b`).test(title)) {
+      return false;
     }
     
-    // 2. Card number matching (if target has number)
-    if (targetNumber) {
-      const hasMatchingNumber = new RegExp(`#${targetNumber}\\b|no\\.?\\s*${targetNumber}\\b|card\\s*${targetNumber}\\b`, 'i').test(title);
-      if (!hasMatchingNumber) return false;
+    // 2. Grade match (if specified)
+    if (targetGrade && !new RegExp(targetGrade).test(title)) {
+      return false;
     }
     
-    // 3. Set tokens (all major tokens must be present)
-    const hasAllSetTokens = setTokens.every(token => 
-      title.includes(token.toLowerCase())
-    );
-    if (!hasAllSetTokens) return false;
+    // 3. Card number match (if specified)
+    if (targetNumber && !new RegExp(targetNumber, 'i').test(title)) {
+      return false;
+    }
     
-    // 4. Exclude obvious non-matches
-    if (target.includes('auto') && !/auto|signature|signed/i.test(title)) return false;
-    if (!target.includes('auto') && /auto|signature|signed/i.test(title)) return false;
-    
-    // 5. Exclude numbered cards if target doesn't have serial
-    if (!/\/\d+/.test(target) && /\/\d{1,4}\b/.test(title)) return false;
+    // 4. Exclude obvious lots
+    if (/\b(lot|bundle|set of \d+)\b/i.test(title)) {
+      return false;
+    }
     
     return true;
   });
 }
 
+
+
 /* ---------- Main ---------- */
-serve(async (req) => {
+serve(async (req: Request) => {
   const origin = req.headers.get("Origin") ?? undefined;
 
   // CORS pre-flight
@@ -277,20 +174,38 @@ serve(async (req) => {
     if (!targetCard) throw new Error("targetCard missing");
 
     const useModel = model || DEF_MODEL;
+    let matches: Sale[] = [];
+    let filterMethod = 'ai-enhanced';
+    let fallbackUsed = false;
 
-    // 1) Smart filtering (Claude-powered)
-    let matches = smartFilter(targetCard, salesData);
+    // 1) Try Groq AI filter first (BEST ACCURACY)
+    try {
+      console.log(`🤖 Attempting Groq AI filter for "${targetCard}"`);
+      matches = await groqAIFilter(targetCard, salesData);
+      console.log(`✅ AI filter: ${salesData.length} → ${matches.length} matches`);
+    } catch (aiError: any) {
+      // Fallback to relaxed local rules if AI fails
+      console.log(`⚠️ AI filter failed: ${aiError.message}, using relaxed fallback`);
+      matches = relaxedLocalFilter(targetCard, salesData);
+      filterMethod = 'rules-fallback';
+      fallbackUsed = true;
+      console.log(`✅ Fallback filter: ${salesData.length} → ${matches.length} matches`);
+    }
     
-    // Safety fallback: if AI returns 0 matches, use deterministic filter
-    if (matches.length === 0) {
-      matches = deterministicFallback(targetCard, salesData);
+    // Safety check: if AI returns 0 matches, try fallback
+    if (matches.length === 0 && !fallbackUsed) {
+      console.log('⚠️ AI returned 0 matches, trying relaxed fallback');
+      matches = relaxedLocalFilter(targetCard, salesData);
+      filterMethod = 'rules-fallback';
+      fallbackUsed = true;
+      console.log(`✅ Fallback filter: ${salesData.length} → ${matches.length} matches`);
     }
 
     // 2) Optional: drop obvious graded lots when target indicates graded single
     const looksGradedTarget = /\b(psa|bgs|sgc|cgc)\b/i.test(targetCard);
     const singles = looksGradedTarget
       ? matches.filter(
-          (s) => !/\b(lot|lots|bundle|set of|set)\b/i.test(s.title),
+          (s: Sale) => !/\b(lot|lots|bundle|set of \d+|\d+.*card.*set)\b/i.test(s.title),
         )
       : matches;
 
@@ -301,6 +216,8 @@ serve(async (req) => {
       {
         success: true,
         model: useModel,
+        filterMethod,
+        fallback: fallbackUsed,
         original: salesData.length,
         matched: matches.length,
         final: final.length,
