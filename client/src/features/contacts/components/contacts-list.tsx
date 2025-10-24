@@ -55,6 +55,7 @@ import {
 import { AddContactDialog } from "./add-contact-dialog";
 import { EditContactDialog } from "./edit-contact-dialog";
 import { type Contact } from "../api/contacts-api";
+import { MobilePageWrapper } from "@/components/layout/mobile-page-wrapper";
 
 // Row component to respect Rules of Hooks
 function ContactRow({
@@ -200,6 +201,13 @@ function ContactsPage() {
   useEffect(() => {
     bulkSelection.clearSelection();
   }, [activeTab]);
+
+  // Event listener for floating (+) button
+  useEffect(() => {
+    const handleAddContact = () => setAddDialogOpen(true);
+    window.addEventListener('slabfy:add-contact', handleAddContact);
+    return () => window.removeEventListener('slabfy:add-contact', handleAddContact);
+  }, []);
   
   /* -------------- mutations -------------- */
   const deleteContact = useDeleteContact();
@@ -308,10 +316,11 @@ function ContactsPage() {
 
   /* -------------- ui -------------- */
   return (
-    <div className="mt-2 min-h-screen bg-background text-foreground">
-      <main>
-    {/* SAME outer wrapper as Collections / Consignments / Shows */}
-  <div className="mx-auto max-w-7xl px-4 sm:px-6 pt-4 pb-48 space-y-6">
+    <MobilePageWrapper>
+      <div className="mt-2 min-h-screen bg-background text-foreground">
+        <main>
+          {/* SAME outer wrapper as Collections / Consignments / Shows */}
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 pt-4 pb-48 space-y-6">
           {/* ---------- Header ---------- */}
           <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
             <h1 className="text-2xl font-semibold font-heading">Contacts</h1>
@@ -603,6 +612,7 @@ function ContactsPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </MobilePageWrapper>
   );
 }
 

@@ -4,12 +4,13 @@
 // Feature: my-portfolio-v0
 // Dependencies: react, lucide-react, @/components/ui, ./filters/filter-provider-v0
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, Grid3X3, List, ListFilter, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { Asset } from '@shared/schema';
 import { useAssetsV0 } from './data/asset-provider-v0';
+import { MobilePageWrapper } from '@/components/layout/mobile-page-wrapper';
 // Use v0 components
 import { FilterProviderV0, useFiltersV0 } from '@/features/my-portfolio-v0/components/filters/filter-provider-v0';
 import { FiltersSidebarV0 as FiltersSidebar } from '@/features/my-portfolio-v0/components/filters/filters-sidebar-v0';
@@ -55,7 +56,39 @@ function PortfolioLayoutV0Inner({
   };
   const [searchQuery, setSearchQuery] = useState('');
   const [addAssetOpen, setAddAssetOpen] = useState(false);
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  // Auto-collapse filters on tablet portrait, show on landscape desktop
+  const [filtersCollapsed, setFiltersCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    // Start collapsed if viewport is less than 1024px (tablet)
+    return window.innerWidth < 1024;
+  });
+  
+  // Handle responsive filter sidebar on resize
+  useEffect(() => {
+    const handleResize = () => {
+      const isTablet = window.innerWidth < 1024;
+      // Auto-collapse on tablet, auto-expand on desktop
+      setFiltersCollapsed(isTablet);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Listen for add asset event from mobile bottom nav
+  useEffect(() => {
+    const handleAddAsset = () => {
+      if (onAddAsset) {
+        onAddAsset();
+      } else {
+        setAddAssetOpen(true);
+      }
+    };
+
+    window.addEventListener('slabfy:add-asset', handleAddAsset);
+    return () => window.removeEventListener('slabfy:add-asset', handleAddAsset);
+  }, [onAddAsset]);
+  
   // Column visibility (independent from main portfolio)
   const defaultCols = {
     ownership: true,
@@ -130,17 +163,18 @@ function PortfolioLayoutV0Inner({
   // Show new user prompt if no assets BUT keep modal mounted so Add Asset button works
   if (!isLoading && assets.length === 0) {
     return (
-      <>
+      <MobilePageWrapper>
         <NewUserPromptV0 onAddAsset={handleAddAssetClick} />
         <AddAssetModalSimple open={addAssetOpen} onOpenChange={setAddAssetOpen} />
-      </>
+      </MobilePageWrapper>
     );
   }
 
   return (
-    <div className="mt-2 h-screen bg-background text-foreground overflow-hidden">
-      <main>
-        <div className="flex w-full h-[calc(100vh-4rem)]">
+    <MobilePageWrapper>
+      <div className="mt-2 h-screen bg-background text-foreground overflow-hidden">
+        <main>
+          <div className="flex w-full h-[calc(100vh-4rem)]">
           {/* Filters Sidebar */}
             {!filtersCollapsed && (
               <FiltersSidebar assets={assets} onHide={() => setFiltersCollapsed(true)} />
@@ -261,7 +295,10 @@ function PortfolioLayoutV0Inner({
           </div>
         </div>
       </main>
+      {/* Add Asset Modal */}
+      <AddAssetModalSimple open={addAssetOpen} onOpenChange={setAddAssetOpen} />
     </div>
+    </MobilePageWrapper>
   );
 }
 

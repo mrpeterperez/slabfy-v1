@@ -50,6 +50,7 @@ import {
 import { AddCollectionDialog } from "./add-collection-dialog";
 import { useBulkSelection } from "@/hooks/use-bulk-selection";
 import { BulkActionBar, type BulkAction } from "@/components/ui/bulk-action-bar";
+import { MobilePageWrapper } from "@/components/layout/mobile-page-wrapper";
 
 type CreateCollectionData = InsertCollection;
 
@@ -158,6 +159,13 @@ function CollectionsPage({
     clearSelection();
   }, [activeTab]);
 
+  // Event listener for floating (+) button
+  useEffect(() => {
+    const handleAddCollection = () => setDialogOpen(true);
+    window.addEventListener('slabfy:add-collection', handleAddCollection);
+    return () => window.removeEventListener('slabfy:add-collection', handleAddCollection);
+  }, []);
+
   /* ----------- helpers -------------- */
   const fmt = useMemo(
     () => new Intl.NumberFormat(undefined, { notation: "compact" }),
@@ -202,9 +210,10 @@ function CollectionsPage({
 
   /* -------------- ui -------------- */
   return (
-    <div className="mt-2 min-h-screen bg-background text-foreground">
-  <main>
-  {/* SAME outer wrapper as Buy / Consignments / Shows */}
+    <MobilePageWrapper>
+      <div className="mt-2 min-h-screen bg-background text-foreground">
+        <main>
+          {/* SAME outer wrapper as Buy / Consignments / Shows */}
   <div className="mx-auto max-w-7xl px-4 sm:px-6 pt-4 pb-48 space-y-6">
           {/* ---------- Header ---------- */}
           <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
@@ -517,6 +526,7 @@ function CollectionsPage({
         </div>
       </main>
     </div>
+    </MobilePageWrapper>
   );
 }
 

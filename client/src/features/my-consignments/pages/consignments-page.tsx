@@ -21,6 +21,7 @@ import { ConsignmentErrorBoundary } from "../components";
 import { useConsignmentStats, useConsignments, useBulkArchiveConsignments, useBulkUnarchiveConsignments, useBulkDeleteConsignments } from "../hooks/use-consignments";
 import { useBulkSelection } from "@/hooks/use-bulk-selection";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
+import { MobilePageWrapper } from "@/components/layout/mobile-page-wrapper";
 
 export function ConsignmentsPage() {
   const [addConsignmentOpen, setAddConsignmentOpen] = useState(false);
@@ -42,6 +43,13 @@ export function ConsignmentsPage() {
   useEffect(() => {
     bulkSelection.clearSelection();
   }, [showArchived]);
+
+  // Event listener for floating (+) button
+  useEffect(() => {
+    const handleAddConsignment = () => setAddConsignmentOpen(true);
+    window.addEventListener('slabfy:add-consignment', handleAddConsignment);
+    return () => window.removeEventListener('slabfy:add-consignment', handleAddConsignment);
+  }, []);
 
   // Bulk mutations
   const bulkArchiveMutation = useBulkArchiveConsignments();
@@ -94,8 +102,9 @@ export function ConsignmentsPage() {
   ] as const;
 
   return (
-    <div className="mt-2 min-h-screen bg-background text-foreground">
-      <main>
+    <MobilePageWrapper>
+      <div className="mt-2 min-h-screen bg-background text-foreground">
+        <main>
         {/* Use the SAME wrapper regardless of loading to avoid layout shifts */}
         <div className="mx-auto max-w-7xl px-4 sm:px-6 pt-4 pb-48 space-y-6">
           {/* Header: responsive layout with proper mobile alignment */}
@@ -271,5 +280,6 @@ export function ConsignmentsPage() {
         onClose={() => setSettingsOpen(false)}
       />
     </div>
+    </MobilePageWrapper>
   );
 }

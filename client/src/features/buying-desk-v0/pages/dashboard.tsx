@@ -18,6 +18,7 @@ import {
   useBulkUnarchiveBuyingSessions,
   useBulkDeleteBuyingSessions,
 } from "../hooks/use-offers";
+import { MobilePageWrapper } from "@/components/layout/mobile-page-wrapper";
 
 export function BuyingDeskPageV0() {
   usePageTitle("Buying Desk");
@@ -38,6 +39,13 @@ export function BuyingDeskPageV0() {
   useEffect(() => {
     bulkSelection.clearSelection();
   }, [showArchived]);
+
+  // Event listener for floating (+) button
+  useEffect(() => {
+    const handleAddBuySession = () => setAddOfferOpen(true);
+    window.addEventListener('slabfy:add-buy-session', handleAddBuySession);
+    return () => window.removeEventListener('slabfy:add-buy-session', handleAddBuySession);
+  }, []);
 
   // Bulk mutations
   const bulkArchiveMutation = useBulkArchiveBuyingSessions();
@@ -102,9 +110,10 @@ export function BuyingDeskPageV0() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <main>
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 pt-4 space-y-6">
+    <MobilePageWrapper>
+      <div className="min-h-screen bg-background text-foreground">
+        <main>
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 pt-4 space-y-6">
           <div className="mt-2 flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold font-heading">Buying Desk</h1>
@@ -239,6 +248,7 @@ export function BuyingDeskPageV0() {
       <AddOfferDialog isOpen={addOfferOpen} onClose={() => setAddOfferOpen(false)} />
       <BuyingDeskSettingsDialog isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
+    </MobilePageWrapper>
   );
 }
 

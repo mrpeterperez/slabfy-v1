@@ -23,6 +23,7 @@ import { AddEventDialog } from "@/features/events/components/add-event/add-event
 import { useBulkSelection } from "@/hooks/use-bulk-selection";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { Archive, ArchiveRestore, Trash2 } from "lucide-react";
+import { MobilePageWrapper } from "@/components/layout/mobile-page-wrapper";
 
 export function EventsPage() {
   usePageTitle("Shows");
@@ -42,6 +43,13 @@ export function EventsPage() {
   useEffect(() => {
     bulkSelection.clearSelection();
   }, [showArchived]);
+
+  // Event listener for floating (+) button
+  useEffect(() => {
+    const handleAddEvent = () => setAddOpen(true);
+    window.addEventListener('slabfy:add-event', handleAddEvent);
+    return () => window.removeEventListener('slabfy:add-event', handleAddEvent);
+  }, []);
 
   // Bulk mutations
   const bulkArchiveMutation = useBulkArchiveEvents();
@@ -82,9 +90,10 @@ export function EventsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground mt-2">
-      <main>
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 pt-4 pb-48">
+    <MobilePageWrapper>
+      <div className="min-h-screen bg-background text-foreground mt-2">
+        <main>
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 pt-4 pb-48">
           {/* Header */}
           <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
             <h1 className="text-2xl font-heading font-semibold">Shows</h1>
@@ -218,5 +227,6 @@ export function EventsPage() {
         </div>
       </main>
     </div>
+    </MobilePageWrapper>
   );
 }

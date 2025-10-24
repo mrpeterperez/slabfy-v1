@@ -96,7 +96,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background text-foreground">
       <div className="flex w-full">
         {showSidebar && sidebarVisible ? (
-          <aside className="hidden md:block">
+          <aside className="hidden lg:block">
             <AppSidebar />
           </aside>
         ) : null}

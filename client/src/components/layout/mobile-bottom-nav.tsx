@@ -13,6 +13,9 @@ import {
   Package,
   DollarSign,
   Handshake,
+  Users,
+  BarChart3,
+  Store,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -20,6 +23,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 type NavItem = {
@@ -35,17 +39,83 @@ export function MobileBottomNav() {
 
   // Render only on top-level parent pages (not on auth, onboarding, or detail views)
   const isVisible = useMemo(() => {
-    const prefixes = [
+    if (typeof path !== "string") return false;
+    
+    // Show on these top-level pages only
+    const topLevelPages = [
       "/dashboard",
       "/my-portfolio",
       "/buying-desk",
       "/events",
       "/consignments",
       "/collections",
+      "/contacts",
       "/analytics",
       "/ai-agent",
+      "/settings/show-storefront",
     ];
-    return typeof path === "string" && prefixes.some((p) => path.startsWith(p));
+    
+    // Check if we're on a top-level page (exact match or just the base path)
+    for (const page of topLevelPages) {
+      if (path === page) return true;
+    }
+    
+    // Hide on detail pages (pages with IDs in the path)
+    // Examples: /events/123, /buying-desk/abc-def, /consignments/456/details
+    const detailPagePatterns = [
+      /^\/events\/[^\/]+/,           // /events/:id...
+      /^\/buying-desk\/[^\/]+/,      // /buying-desk/:id...
+      /^\/consignments\/[^\/]+/,     // /consignments/:id...
+      /^\/collections\/[^\/]+/,      // /collections/:id...
+      /^\/contacts\/[^\/]+/,         // /contacts/:id...
+      /^\/assets\/[^\/]+/,           // /assets/:id...
+    ];
+    
+    return !detailPagePatterns.some(pattern => pattern.test(path));
+  }, [path]);
+
+  // Context-aware floating action button config
+  const floatingAction = useMemo(() => {
+    if (typeof path !== "string") return null;
+
+    if (path === "/my-portfolio") {
+      return {
+        label: "Add Asset",
+        eventName: "slabfy:add-asset"
+      };
+    }
+    if (path === "/events") {
+      return {
+        label: "Add Show",
+        eventName: "slabfy:add-event"
+      };
+    }
+    if (path === "/consignments") {
+      return {
+        label: "Add Consignment",
+        eventName: "slabfy:add-consignment"
+      };
+    }
+    if (path === "/collections") {
+      return {
+        label: "Add Collection",
+        eventName: "slabfy:add-collection"
+      };
+    }
+    if (path === "/buying-desk") {
+      return {
+        label: "Add Session",
+        eventName: "slabfy:add-buy-session"
+      };
+    }
+    if (path === "/contacts") {
+      return {
+        label: "Add Contact",
+        eventName: "slabfy:add-contact"
+      };
+    }
+
+    return null;
   }, [path]);
 
   // If currently inside /events/:id[/...], link Show Page to that event id; otherwise to /events
@@ -80,7 +150,7 @@ export function MobileBottomNav() {
   const isActive = (to: string) => path.startsWith(to);
 
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       {/* Spacer to prevent content from being hidden behind the bar if pages forget padding */}
       <div className="h-0" aria-hidden />
       <nav
@@ -88,7 +158,7 @@ export function MobileBottomNav() {
         role="navigation"
         aria-label="Primary"
       >
-        <div className="mx-auto max-w-screen-sm">
+        <div className="mx-auto max-w-screen-md">
           <div className={`grid items-center px-2 py-1 gap-1 ${isEventRoute ? "grid-cols-5" : "grid-cols-5"}`}>
             {/* Left block: Home/Assets when not on event; Inventory when on event */}
             {isEventRoute ? (
@@ -136,7 +206,7 @@ export function MobileBottomNav() {
               </button>
             ) : null}
 
-            {/* Center CTA (Add on event detail, AI Agent elsewhere) */}
+            {/* Center CTA (Add on event detail, Context-aware Add elsewhere) */}
             {isEventRoute ? (
               <div className="flex items-center justify-center">
                 <button
@@ -151,17 +221,21 @@ export function MobileBottomNav() {
                   <Plus className="h-5 w-5" aria-hidden />
                 </button>
               </div>
-            ) : (
+            ) : floatingAction ? (
               <div className="flex items-center justify-center">
                 <button
-                  onClick={go("/ai-agent")}
-                  aria-label="AI Agent"
-                  className="relative -mt-6 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-md ring-4 ring-background flex items-center justify-center"
+                  onClick={() => {
+                    try {
+                      window.dispatchEvent(new CustomEvent(floatingAction.eventName));
+                    } catch {}
+                  }}
+                  aria-label={floatingAction.label}
+                  className="relative -mt-6 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-md ring-4 ring-background flex items-center justify-center hover:bg-primary/90 transition-colors"
                 >
-                  <Bot className="h-5 w-5" aria-hidden />
+                  <Plus className="h-5 w-5" aria-hidden />
                 </button>
               </div>
-            )}
+            ) : null}
 
       {/* Fourth block: Buy Sessions on event; Shows on parent pages */}
             {isEventRoute ? (
@@ -210,13 +284,33 @@ export function MobileBottomNav() {
                 <DropdownMenuContent
                   side="top"
                   align="center"
-                  className="min-w-[180px] rounded-xl border bg-background shadow-lg px-1 py-1.5"
+                  className="min-w-[200px] rounded-xl border bg-background shadow-lg px-1 py-1.5"
                 >
+                  <DropdownMenuItem onClick={() => setLocation("/buying-desk")}>
+                    <Handshake className="h-4 w-4 mr-2" />
+                    Buying Desk
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation("/settings/show-storefront")}>
+                    <Store className="h-4 w-4 mr-2" />
+                    Show Storefront
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setLocation("/consignments")}>
+                    <Boxes className="h-4 w-4 mr-2" />
                     Consignments
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setLocation("/collections")}>
+                    <FolderOpen className="h-4 w-4 mr-2" />
                     Collections
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation("/contacts")}>
+                    <Users className="h-4 w-4 mr-2" />
+                    Contacts
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setLocation("/analytics")}>
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Analytics
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
