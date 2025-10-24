@@ -6,10 +6,8 @@ import { useAuth } from "@/components/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Check } from "lucide-react";
 import { collectionOptions } from "@shared/schema";
-import { useTheme } from "next-themes";
-import { Sun, Moon, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MobilePersonalizationPageProps {
@@ -17,16 +15,9 @@ interface MobilePersonalizationPageProps {
   onClose: () => void;
 }
 
-const themeOptions = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "Device", icon: Monitor },
-];
-
 export function MobilePersonalizationPage({ isOpen, onClose }: MobilePersonalizationPageProps) {
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [selectedCollections, setSelectedCollections] = useState<string[]>(user?.collections || []);
   const [isSaving, setIsSaving] = useState(false);
@@ -107,38 +98,8 @@ export function MobilePersonalizationPage({ isOpen, onClose }: MobilePersonaliza
           Personalization
         </h1>
 
-        {/* Appearance Section */}
-        <div className="pb-6 border-b">
-          <h2 className="text-base font-medium mb-4">Appearance</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Choose how Slabfy looks to you.
-          </p>
-
-          <div className="grid grid-cols-3 gap-2">
-            {themeOptions.map((option) => {
-              const Icon = option.icon;
-              const isActive = theme === option.value;
-              return (
-                <button
-                  key={option.value}
-                  onClick={() => setTheme(option.value)}
-                  className={cn(
-                    "flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors",
-                    isActive
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-muted-foreground/50"
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span className="text-sm">{option.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Collection Preferences */}
-        <div className="pt-6">
+        <div>
           {isEditing ? (
             <div className="space-y-6">
               <div className="pb-6">
@@ -157,19 +118,26 @@ export function MobilePersonalizationPage({ isOpen, onClose }: MobilePersonaliza
                   Select the card types you collect
                 </p>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="space-y-2">
                   {collectionOptions.map((collection) => (
                     <button
                       key={collection}
                       type="button"
                       onClick={() => handleToggleCollection(collection)}
-                      className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-3.5 rounded-lg text-base text-left transition-colors",
                         selectedCollections.includes(collection)
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                      }`}
+                      )}
                     >
-                      {collection}
+                      <Check 
+                        className={cn(
+                          "h-5 w-5 flex-shrink-0",
+                          selectedCollections.includes(collection) ? "opacity-100" : "opacity-0"
+                        )} 
+                      />
+                      <span>{collection}</span>
                     </button>
                   ))}
                 </div>
@@ -200,14 +168,15 @@ export function MobilePersonalizationPage({ isOpen, onClose }: MobilePersonaliza
                 </div>
 
                 {user.collections && user.collections.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="space-y-2">
                     {user.collections.map(collection => (
-                      <span 
+                      <div 
                         key={collection}
-                        className="px-3 py-1.5 rounded-md text-sm bg-secondary text-secondary-foreground"
+                        className="flex items-center gap-3 px-4 py-3.5 rounded-lg bg-secondary text-secondary-foreground"
                       >
-                        {collection}
-                      </span>
+                        <Check className="h-5 w-5 flex-shrink-0" />
+                        <span className="text-base">{collection}</span>
+                      </div>
                     ))}
                   </div>
                 ) : (
