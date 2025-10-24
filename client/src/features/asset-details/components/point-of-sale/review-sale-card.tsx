@@ -8,6 +8,7 @@ import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Asset } from "@shared/schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface RealTimePricingData {
   averagePrice: number;
@@ -168,19 +169,21 @@ export const ReviewSaleCard: React.FC<ReviewSaleCardProps> = ({
     <div className="bg-card rounded-lg border overflow-hidden">
       {/* Tabs */}
       <div className="flex border-b">
-        <button
+        <Button
+          variant="ghost"
           onClick={() => setActiveTab("sell")}
-          className={`flex-1 py-5 text-center font-bold text-md ${activeTab === "sell" ? "border-b-4 border-success" : "text-muted-foreground"}`}
+          className={`flex-1 py-5 rounded-none text-center font-bold text-md ${activeTab === "sell" ? "border-b-4 border-success" : "text-muted-foreground"}`}
         >
           Sell Asset
-        </button>
+        </Button>
         {!isSold && (
-          <button
+          <Button
+            variant="ghost"
             onClick={() => setActiveTab("buy")}
-            className={`flex-1 py-4 text-center font-bold text-md ${activeTab === "buy" ? "border-b-4 border-success" : "text-muted-foreground"}`}
+            className={`flex-1 py-4 rounded-none text-center font-bold text-md ${activeTab === "buy" ? "border-b-4 border-success" : "text-muted-foreground"}`}
           >
             Buy Asset
-          </button>
+          </Button>
         )}
       </div>
 
