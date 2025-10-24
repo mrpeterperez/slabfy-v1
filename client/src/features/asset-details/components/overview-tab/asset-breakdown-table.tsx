@@ -196,6 +196,7 @@
 
     // Handle purchase date update
     const handlePurchaseDateUpdate = (assetId: string, newDate: string | null) => {
+      console.log('📅 AssetBreakdownTable - handlePurchaseDateUpdate called:', { assetId, newDate });
       updateAsset({
         assetId,
         updates: { purchaseDate: newDate }

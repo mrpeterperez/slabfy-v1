@@ -52,7 +52,7 @@ export const GroupedTableRow: React.FC<RowProps> = ({ asset, market, show, onCli
             onClick={() => onClick(asset)}
           >
             {indent > 0 && <span style={{ width: indent }} className="flex-shrink-0" />}
-            <div className="h-auto w-14 bg-muted rounded overflow-hidden flex items-center justify-center group-hover:ring-2 group-hover:ring-primary relative">
+            <div className={`h-auto flex-shrink-0 bg-muted rounded overflow-hidden flex items-center justify-center group-hover:ring-2 group-hover:ring-primary relative ${indent > 0 ? 'w-12' : 'w-14'}`}>
               <img src={asset.psaImageFrontUrl || PLACEHOLDER_IMAGE_URL} alt="card" className="w-full h-full object-cover" />
               {!asset.psaImageFrontUrl && (
                 <Tooltip>

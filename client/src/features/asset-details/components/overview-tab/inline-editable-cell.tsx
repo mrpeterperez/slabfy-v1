@@ -47,6 +47,7 @@ export const InlineEditableCell: React.FC<InlineEditableCellProps> = ({
   /* ------------------------------------------------------------------ */
   // HELPERS
   const save = (val: string | number | null) => {
+    console.log('💾 InlineEditableCell - Saving value:', val, 'Type:', type);
     onSave(val);
     setIsEditing(false);
     setShowCalendar(false);
@@ -113,6 +114,7 @@ export const InlineEditableCell: React.FC<InlineEditableCellProps> = ({
             onSelect={(date) => {
               if (!date) return;
               const iso = date.toISOString().split("T")[0];
+              console.log('📅 InlineEditableCell - Date selected:', iso, 'Original value:', value);
               save(iso);
             }}
             disabled={(date) =>

@@ -88,7 +88,7 @@ interface Props {
 
 export function InventoryTableV2({ event, onToggleCart, cartCount, onAddToCart, isInCart, onRemoveFromCart }: Props) {
         // Single source of truth for missing-image placeholder
-        const NO_IMAGE_PLACEHOLDER = "https://koeoplnomfmuzreldryz.supabase.co/storage/v1/object/public/bucketv0/No-Image-Placeholder.png";
+        const NO_IMAGE_PLACEHOLDER = "https://koeoplnomfmuzreldryz.supabase.co/storage/v1/object/public/bucketv0/No-Image-Placeholder-Slabfy.png";
         const queryClient = useQueryClient();
         const [openAdd, setOpenAdd] = useState(false);
         const [search, setSearch] = useState("");

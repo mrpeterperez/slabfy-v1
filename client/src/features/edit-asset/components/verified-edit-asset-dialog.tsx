@@ -98,6 +98,11 @@ export function VerifiedEditAssetDialog({ asset, open, onOpenChange }: VerifiedE
         queryClient.invalidateQueries({ queryKey: ["/api/assets"] }),
         queryClient.invalidateQueries({ queryKey: [`/api/user/${user?.id}/assets`] }),
         queryClient.invalidateQueries({ queryKey: [`/api/assets/${asset.id}`] }),
+        // CRITICAL: Also invalidate the combined assets-or-global query key used on asset detail page
+        queryClient.invalidateQueries({ 
+          predicate: (q) => Array.isArray(q.queryKey) && 
+            q.queryKey[0] === `/api/assets-or-global/${asset.id}`
+        }),
         // CRITICAL: Asset edits can affect pricing/sparklines
   // Predicate invalidate to cover dynamic second segment keys
   queryClient.invalidateQueries({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === 'portfolio-pricing-v2' }),

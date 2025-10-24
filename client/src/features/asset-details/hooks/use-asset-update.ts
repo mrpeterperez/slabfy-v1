@@ -26,13 +26,17 @@ export const useAssetUpdate = () => {
 
   return useMutation({
     mutationFn: async ({ assetId, updates }: UpdateAssetParams) => {
+      console.log('🔄 useAssetUpdate - Starting mutation:', { assetId, updates });
       const response = await apiRequest('PATCH', `/api/assets/${assetId}`, updates);
 
       if (!response.ok) {
+        console.error('❌ useAssetUpdate - Request failed:', response.status);
         throw new Error('Failed to update asset');
       }
 
-      return response.json() as Promise<Asset>;
+      const result = await response.json() as Asset;
+      console.log('✅ useAssetUpdate - Success:', result);
+      return result;
     },
     onSuccess: async (updatedAsset, { assetId }) => {
       // Optimistically update the specific asset in cache
@@ -43,6 +47,11 @@ export const useAssetUpdate = () => {
         queryClient.invalidateQueries({ queryKey: ["/api/assets"] }),
         queryClient.invalidateQueries({ queryKey: [`/api/user/${user?.id}/assets`] }),
         queryClient.invalidateQueries({ queryKey: [`/api/assets/${assetId}`] }),
+        // CRITICAL: Also invalidate the combined assets-or-global query key used on asset detail page
+        queryClient.invalidateQueries({ 
+          predicate: (q) => Array.isArray(q.queryKey) && 
+            q.queryKey[0] === `/api/assets-or-global/${assetId}`
+        }),
         // Asset edits can affect pricing/sparklines
         queryClient.invalidateQueries({ 
           predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === 'portfolio-pricing-v2' 

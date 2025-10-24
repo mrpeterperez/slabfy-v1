@@ -101,7 +101,7 @@ export function PortfolioTableRowV0({
             <img
               src={asset.psaImageFrontUrl}
               alt={asset.title || 'Card'}
-              className="w-12 h-16 object-cover rounded border"
+              className="w-12 h-16 flex-shrink-0 object-cover rounded border"
             />
           )}
           <div className="min-w-0 flex-1">
