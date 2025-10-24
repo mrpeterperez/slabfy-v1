@@ -5,12 +5,14 @@
 // Dependencies: react, lucide-react, @/components/ui, ./filters/filter-provider-v0
 
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Grid3X3, List, ListFilter, Plus } from 'lucide-react';
+import { Grid3X3, List, ListFilter, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import type { Asset } from '@shared/schema';
 import { useAssetsV0 } from './data/asset-provider-v0';
 import { MobilePageWrapper } from '@/components/layout/mobile-page-wrapper';
+import { MobileSearchBar } from '@/components/layout/mobile-search-bar';
+import { MobileFiltersDrawer } from './filters/mobile-filters-drawer';
+import { MobilePortfolioList } from './mobile-portfolio-list';
 // Use v0 components
 import { FilterProviderV0, useFiltersV0 } from '@/features/my-portfolio-v0/components/filters/filter-provider-v0';
 import { FiltersSidebarV0 as FiltersSidebar } from '@/features/my-portfolio-v0/components/filters/filters-sidebar-v0';
@@ -40,7 +42,7 @@ function PortfolioLayoutV0Inner({
   onAddAsset,
 }: PortfolioLayoutV0Props) {
   const { assets, isLoading } = useAssetsV0();
-  const { filterAssets } = useFiltersV0();
+  const { filterAssets, activeCount } = useFiltersV0();
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const gridSizeKey = 'slabfy_v0_grid_size';
   const [gridSize, setGridSize] = useState<'s'|'m'|'l'>(() => {
@@ -55,6 +57,8 @@ function PortfolioLayoutV0Inner({
     try { localStorage.setItem(gridSizeKey, s); } catch {}
   };
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isFiltersDrawerOpen, setIsFiltersDrawerOpen] = useState(false);
   const [addAssetOpen, setAddAssetOpen] = useState(false);
   // Auto-collapse filters on tablet portrait, show on landscape desktop
   const [filtersCollapsed, setFiltersCollapsed] = useState(() => {
@@ -163,7 +167,14 @@ function PortfolioLayoutV0Inner({
   // Show new user prompt if no assets BUT keep modal mounted so Add Asset button works
   if (!isLoading && assets.length === 0) {
     return (
-      <MobilePageWrapper>
+      <MobilePageWrapper onSearchClick={() => setIsSearchOpen(true)}>
+        <MobileSearchBar
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          placeholder="Search by player, set, cert #..."
+        />
         <NewUserPromptV0 onAddAsset={handleAddAssetClick} />
         <AddAssetModalSimple open={addAssetOpen} onOpenChange={setAddAssetOpen} />
       </MobilePageWrapper>
@@ -171,8 +182,15 @@ function PortfolioLayoutV0Inner({
   }
 
   return (
-    <MobilePageWrapper>
-      <div className="mt-2 h-screen bg-background text-foreground overflow-hidden">
+    <MobilePageWrapper onSearchClick={() => setIsSearchOpen(true)}>
+      <MobileSearchBar
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        placeholder="Search by player, set, cert #..."
+      />
+      <div className="mt-7 h-screen bg-background text-foreground overflow-hidden">
         <main>
           <div className="flex w-full h-[calc(100vh-4rem)]">
           {/* Filters Sidebar */}
@@ -182,8 +200,8 @@ function PortfolioLayoutV0Inner({
           <div className="flex-1 flex flex-col min-w-0">
             {/* Top Bar matching main portfolio */}
             <div className="flex-shrink-0 w-full border-b border-border bg-background sticky top-0 z-20">
-              <div className="mx-auto max-w-full px-4 sm:px-6 pt-4 pb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start w-full sm:w-auto">
+              <div className="mx-auto max-w-full px-4 sm:px-6 pt-4 pb-4 flex flex-row items-center justify-between">
+                <div className="flex items-start">
                   <PortfolioSummary
                     userId={userId}
                     inline
@@ -191,33 +209,36 @@ function PortfolioLayoutV0Inner({
                     prefix={filtersCollapsed ? (
                       <button
                         type="button"
-                        onClick={() => setFiltersCollapsed(false)}
-                        className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => {
+                          // Mobile: open drawer, Desktop: toggle sidebar
+                          if (window.innerWidth < 1024) {
+                            setIsFiltersDrawerOpen(true);
+                          } else {
+                            setFiltersCollapsed(false);
+                          }
+                        }}
+                        className="relative flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
                         aria-label="Show filters"
                       >
-                        <ListFilter className="h-4 w-4" />
-                        Show Filters
+                        <div className="relative">
+                          <ListFilter className="h-4 w-4" />
+                          {activeCount > 0 && (
+                            <span className="lg:hidden absolute -top-2 -right-2 min-w-[16px] h-[16px] flex items-center justify-center text-[9px] font-bold bg-primary text-primary-foreground rounded-full px-0.5">
+                              {activeCount}
+                            </span>
+                          )}
+                        </div>
+                        <span className="hidden lg:inline">Show Filters</span>
                       </button>
                     ) : null}
                   />
                 </div>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:ml-auto sm:gap-3 w-full sm:w-auto">
-                  <div className="relative w-full sm:w-72 md:w-80">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      placeholder="Search by player, set, cert #..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                  <div className="hidden sm:block h-6 w-px bg-border" />
-                  <div className="flex items-center gap-2">
-                    <PortfolioV0ColumnsPopover
-                      columns={columnDefs}
-                      onToggle={toggleColumn}
-                      onReset={resetColumns}
-                    />
+                <div className="flex items-center gap-2 sm:ml-auto">
+                  <PortfolioV0ColumnsPopover
+                    columns={columnDefs}
+                    onToggle={toggleColumn}
+                    onReset={resetColumns}
+                  />
                     <Button
                       variant="ghost"
                       size="sm"
@@ -253,17 +274,7 @@ function PortfolioLayoutV0Inner({
                         ))}
                       </div>
                     )}
-                  </div>
-                  <AddAssetModalSimple
-                    open={addAssetOpen}
-                    onOpenChange={setAddAssetOpen}
-                    triggerButton={
-                      <Button onClick={() => setAddAssetOpen(true)}>
-                        <Plus className="h-4 w-4" />
-                        Add Asset
-                      </Button>
-                    }
-                  />
+                  {/* Add Asset trigger removed from toolbar - FAB handles context actions on mobile */}
                 </div>
               </div>
             </div>
@@ -282,13 +293,22 @@ function PortfolioLayoutV0Inner({
                 ) : viewMode === 'grid' ? (
                   <GridViewV0 assets={filteredAssets} onEdit={onEditAsset} onDelete={onDeleteAsset} size={gridSize} visible={visibleCols as any} />
                 ) : (
-                  // Use grouped table to show asset grouping functionality
-                  <GroupedPortfolioTableV0
-                    assets={filteredAssets as any}
-                    visible={visibleCols as any}
-                    onEdit={onEditAsset}
-                    onDelete={onDeleteAsset}
-                  />
+                  <>
+                    {/* Mobile: Card-based list view */}
+                    <MobilePortfolioList 
+                      assets={filteredAssets as any}
+                      onViewAsset={onViewAsset}
+                    />
+                    {/* Desktop: Grouped table */}
+                    <div className="hidden lg:block">
+                      <GroupedPortfolioTableV0
+                        assets={filteredAssets as any}
+                        visible={visibleCols as any}
+                        onEdit={onEditAsset}
+                        onDelete={onDeleteAsset}
+                      />
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -297,6 +317,13 @@ function PortfolioLayoutV0Inner({
       </main>
       {/* Add Asset Modal */}
       <AddAssetModalSimple open={addAssetOpen} onOpenChange={setAddAssetOpen} />
+      
+      {/* Mobile Filters Drawer */}
+      <MobileFiltersDrawer
+        isOpen={isFiltersDrawerOpen}
+        onClose={() => setIsFiltersDrawerOpen(false)}
+        assets={assets}
+      />
     </div>
     </MobilePageWrapper>
   );

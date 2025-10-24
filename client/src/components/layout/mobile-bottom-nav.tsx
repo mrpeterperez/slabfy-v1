@@ -206,36 +206,16 @@ export function MobileBottomNav() {
               </button>
             ) : null}
 
-            {/* Center CTA (Add on event detail, Context-aware Add elsewhere) */}
-            {isEventRoute ? (
-              <div className="flex items-center justify-center">
-                <button
-                  onClick={() => {
-                    try {
-                      window.dispatchEvent(new CustomEvent('slabfy:add-to-event'));
-                    } catch {}
-                  }}
-                  aria-label="Add Items"
-                  className="relative -mt-6 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-md ring-4 ring-background flex items-center justify-center"
-                >
-                  <Plus className="h-5 w-5" aria-hidden />
-                </button>
-              </div>
-            ) : floatingAction ? (
-              <div className="flex items-center justify-center">
-                <button
-                  onClick={() => {
-                    try {
-                      window.dispatchEvent(new CustomEvent(floatingAction.eventName));
-                    } catch {}
-                  }}
-                  aria-label={floatingAction.label}
-                  className="relative -mt-6 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-md ring-4 ring-background flex items-center justify-center hover:bg-primary/90 transition-colors"
-                >
-                  <Plus className="h-5 w-5" aria-hidden />
-                </button>
-              </div>
-            ) : null}
+            {/* Center: AI Agent (primary center icon) */}
+            <div className="flex items-center justify-center">
+              <button
+                onClick={() => setLocation('/ai-agent')}
+                aria-label="AI Agent"
+                className="relative -mt-6 h-12 w-12 rounded-full bg-gradient-to-b from-zinc-900 to-zinc-800 text-primary-foreground shadow-md ring-4 ring-background flex items-center justify-center"
+              >
+                <Bot className="h-6 w-6 text-white" aria-hidden />
+              </button>
+            </div>
 
       {/* Fourth block: Buy Sessions on event; Shows on parent pages */}
             {isEventRoute ? (
@@ -319,6 +299,20 @@ export function MobileBottomNav() {
         </div>
         {/* Safe area padding */}
         <div className="pb-[env(safe-area-inset-bottom)]" aria-hidden />
+        {/* Floating (+) FAB at bottom-right - context-aware */}
+        {floatingAction ? (
+          <button
+            onClick={() => {
+              try {
+                window.dispatchEvent(new CustomEvent(floatingAction.eventName));
+              } catch {}
+            }}
+            aria-label={floatingAction.label}
+            className="fixed right-4 bottom-20 z-60 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/95 transition-colors"
+          >
+            <Plus className="h-6 w-6" aria-hidden />
+          </button>
+        ) : null}
       </nav>
       {/* Reserve space for the bar to avoid overlap (approximate height) */}
       <div className="h-16" aria-hidden />

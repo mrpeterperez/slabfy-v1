@@ -59,7 +59,7 @@ export function MobilePageWrapper({ children, showSearch = true, onSearchClick }
       />
 
       {/* Spacer for fixed header */}
-      <div className="lg:hidden h-16" aria-hidden />
+      <div className="lg:hidden h-4" aria-hidden />
 
       {/* Page Content */}
       {children}

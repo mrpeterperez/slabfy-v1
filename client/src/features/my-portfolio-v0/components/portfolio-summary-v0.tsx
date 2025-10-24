@@ -92,13 +92,13 @@ export function PortfolioSummaryV0({ userId, inline = false, title = 'My Portfol
     return (
       <div className="flex flex-col">
         <div className="flex items-center gap-3">
-          <h1 className="text-md font-regular text-muted-foreground">{title}</h1>
+          <h1 className="text-2xl lg:text-md font-regular text-muted-foreground">{title}</h1>
           {prefix}
         </div>
         <div className="mt-1 flex items-center flex-wrap gap-4 text-muted-foreground">
           <AnimatedCounter 
             value={mainValue} 
-            className="text-2xl font-semibold font-heading text-foreground"
+            className="text-[34px] lg:text-2xl font-semibold font-heading text-foreground"
             duration={2000}
             showToggle={true}
             hiddenText="••••••"

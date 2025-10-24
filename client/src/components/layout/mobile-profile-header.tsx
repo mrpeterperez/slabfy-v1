@@ -27,7 +27,7 @@ export function MobileProfileHeader({ onProfileClick, onSearchClick }: MobilePro
 
   return (
     <div className="lg:hidden fixed top-0 inset-x-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto max-w-screen-md px-4">
+      <div className="mx-auto w-full px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Avatar - Left */}
           <button
@@ -47,14 +47,13 @@ export function MobileProfileHeader({ onProfileClick, onSearchClick }: MobilePro
 
           {/* Search - Right */}
           {onSearchClick && (
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={onSearchClick}
+              className="flex items-center justify-center min-w-[48px] min-h-[48px]"
               aria-label="Search"
             >
-              <Search className="h-5 w-5" />
-            </Button>
+              <Search className="h-7 w-7" />
+            </button>
           )}
         </div>
       </div>
