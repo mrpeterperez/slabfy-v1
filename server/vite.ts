@@ -108,8 +108,11 @@ export function serveStatic(app: Express) {
 
   // fall through to index.html ONLY for non-asset routes (HTML5 pushState routing)
   app.use("*", (req, res, next) => {
-    // Don't serve index.html for asset requests
-    if (req.originalUrl.startsWith('/assets/') || 
+    // Don't serve index.html for static asset files (files with extensions in /assets/ build directory)
+    // This regex checks if the path is /assets/ followed by files with extensions (e.g., .js, .css, .png)
+    const isStaticAsset = /^\/assets\/.*\.[a-z0-9]+$/i.test(req.originalUrl.split('?')[0]);
+    
+    if (isStaticAsset || 
         req.originalUrl.includes('.js') || 
         req.originalUrl.includes('.css') ||
         req.originalUrl.includes('.map')) {
