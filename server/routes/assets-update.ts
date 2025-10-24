@@ -120,6 +120,8 @@ export const createAssetUpdateHandler = (fetchAssetForUser: FetchAssetFn) =>
         globalAssetUpdates.assetImages = Array.isArray(record.assetImages) ? record.assetImages : [];
       }
 
+      // Note: imageUrl is a legacy field not stored in DB - images should use assetImages array instead
+
       if (Object.keys(globalAssetUpdates).length > 0 && existingAsset.globalAssetId) {
         globalAssetUpdates.updatedAt = new Date();
         await db

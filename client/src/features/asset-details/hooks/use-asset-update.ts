@@ -1,5 +1,5 @@
 // 🤖 INTERNAL NOTE:
-// Purpose: Optimized hook for updating asset purchase information with minimal cache invalidation
+// Purpose: Hook for updating asset purchase information with proper cache invalidation
 // Exports: useAssetUpdate mutation hook
 // Feature: asset-details
 // Dependencies: @tanstack/react-query, @/lib/queryClient
@@ -8,18 +8,21 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Asset } from "@shared/schema";
+import { useAuth } from "@/components/auth-provider";
 
 interface UpdateAssetParams {
   assetId: string;
   updates: {
     purchasePrice?: number | null;
     purchaseDate?: string | null;
+    purchaseSource?: string | null;
   };
 }
 
 export const useAssetUpdate = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ assetId, updates }: UpdateAssetParams) => {
@@ -31,16 +34,22 @@ export const useAssetUpdate = () => {
 
       return response.json() as Promise<Asset>;
     },
-    onSuccess: (updatedAsset, { assetId }) => {
-      // Optimistic update - directly update the asset in cache
+    onSuccess: async (updatedAsset, { assetId }) => {
+      // Optimistically update the specific asset in cache
       queryClient.setQueryData([`/api/assets/${assetId}`], updatedAsset);
       
-      // Only invalidate the specific asset query to trigger UI refresh
-      // This is much faster than invalidating all assets/pricing queries
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/assets/${assetId}`],
-        exact: true 
-      });
+      // Invalidate all relevant queries to ensure UI updates everywhere
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/assets"] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/user/${user?.id}/assets`] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/assets/${assetId}`] }),
+        // Asset edits can affect pricing/sparklines
+        queryClient.invalidateQueries({ 
+          predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === 'portfolio-pricing-v2' 
+        }),
+        queryClient.invalidateQueries({ queryKey: [`/api/pricing/${assetId}`] }),
+        queryClient.invalidateQueries({ queryKey: [`sparkline-data-${assetId}`] }),
+      ]);
       
       toast({
         title: "Asset updated",

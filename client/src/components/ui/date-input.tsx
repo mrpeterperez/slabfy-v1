@@ -106,7 +106,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
           </button>
         </PopoverTrigger>
-  <PopoverContent className="w-auto p-0 z-[200]" align="start">
+  <PopoverContent className="w-auto p-0 z-[99999]" align="start">
           <Calendar
             mode="single"
             selected={parsedDate}

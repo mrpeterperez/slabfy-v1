@@ -106,7 +106,7 @@ export const InlineEditableCell: React.FC<InlineEditableCellProps> = ({
             </span>
           )}
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0 z-[99999]" align="start">
           <Calendar
             mode="single"
             selected={hasDate && value ? new Date(`${String(value)}T12:00:00`) : undefined}
