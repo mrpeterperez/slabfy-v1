@@ -171,16 +171,18 @@ export const ReviewSaleCard: React.FC<ReviewSaleCardProps> = ({
       <div className="flex border-b">
         <Button
           variant="ghost"
+          size="lg"
           onClick={() => setActiveTab("sell")}
-          className={`flex-1 py-5 rounded-none text-center font-bold text-md ${activeTab === "sell" ? "border-b-4 border-success" : "text-muted-foreground"}`}
+          className={`flex-1 rounded-none font-bold ${activeTab === "sell" ? "border-b-4 border-success text-foreground" : "text-muted-foreground border-b-4 border-transparent"}`}
         >
           Sell Asset
         </Button>
         {!isSold && (
           <Button
             variant="ghost"
+            size="lg"
             onClick={() => setActiveTab("buy")}
-            className={`flex-1 py-4 rounded-none text-center font-bold text-md ${activeTab === "buy" ? "border-b-4 border-success" : "text-muted-foreground"}`}
+            className={`flex-1 rounded-none font-bold ${activeTab === "buy" ? "border-b-4 border-success text-foreground" : "text-muted-foreground border-b-4 border-transparent"}`}
           >
             Buy Asset
           </Button>
@@ -293,9 +295,9 @@ export const ReviewSaleCard: React.FC<ReviewSaleCardProps> = ({
           {/* Review Sale Button with Coming Soon Dialog */}
           <Dialog>
             <DialogTrigger asChild>
-              <button className="w-full mt-6 bg-brand text-brand-foreground border border-brand rounded-full h-9 font-bold text-sm hover:bg-brand/90 transition-colors">
+              <Button className="w-full mt-6 rounded-full h-9 font-bold text-sm">
                 Review Sale
-              </button>
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
