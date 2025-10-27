@@ -75,6 +75,7 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname, "client"),
   server: {
+    host: true, // Listen on all network interfaces
     sourcemapIgnoreList: () => false,
   },
   css: {
