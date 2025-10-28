@@ -24,7 +24,7 @@ export const GroupedPortfolioTableV0: React.FC<Props> = ({ assets, visible, onEd
     unrealized: visible?.unrealized ?? true,
     confidence: visible?.confidence ?? true,
     liquidity: visible?.liquidity ?? true,
-    trend: true,
+    trend: visible?.trend ?? true,
   }), [visible]);
 
   const handleClick = (a: Asset) => { window.location.href = `/assets/${a.id}`; };
@@ -42,7 +42,7 @@ export const GroupedPortfolioTableV0: React.FC<Props> = ({ assets, visible, onEd
           {show.confidence && <th className="text-center px-3 py-2 font-medium">Confidence</th>}
           {show.liquidity && <th className="text-center px-3 py-2 font-medium">Liquidity</th>}
           {show.current && <th className="text-right px-3 py-2 font-medium sticky right-24 bg-background z-0">Price</th>}
-          {show.trend && <th className="text-center px-3 py-2 font-medium sticky right-0 bg-background z-0">Trend</th>}
+          {show.trend && <th className="text-left px-4 py-2 font-medium sticky right-0 bg-background z-0">Trend</th>}
         </tr>
       </thead>
       <tbody className="divide-y divide-border">

@@ -26,9 +26,10 @@ interface MobilePortfolioCardProps {
   };
   index: number;
   onClick: (asset: Asset) => void;
+  groupCount?: number;
 }
 
-export function MobilePortfolioCard({ asset, market, index, onClick }: MobilePortfolioCardProps) {
+export function MobilePortfolioCard({ asset, market, index, onClick, groupCount = 1 }: MobilePortfolioCardProps) {
   const averagePrice = market?.averagePrice || 0;
   const salesCount = market?.salesCount || 0;
   const confidence = market?.confidence || 0;
@@ -64,6 +65,11 @@ export function MobilePortfolioCard({ asset, market, index, onClick }: MobilePor
           {!asset.psaImageFrontUrl && (
             <div className="absolute bottom-1 right-1 h-3 w-3 bg-muted-foreground/80 rounded-full flex items-center justify-center">
               <span className="text-[8px] text-background font-bold">?</span>
+            </div>
+          )}
+          {groupCount > 1 && (
+            <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-primary text-primary-foreground rounded text-[10px] font-bold">
+              {groupCount}
             </div>
           )}
         </div>

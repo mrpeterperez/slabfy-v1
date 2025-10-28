@@ -45,14 +45,14 @@ function PortfolioLayoutV0Inner({
   const { filterAssets, activeCount } = useFiltersV0();
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const gridSizeKey = 'slabfy_v0_grid_size';
-  const [gridSize, setGridSize] = useState<'s'|'m'|'l'>(() => {
+  const [gridSize, setGridSize] = useState<'xs'|'s'|'m'|'l'>(() => {
     if (typeof window !== 'undefined') {
       const v = localStorage.getItem(gridSizeKey);
-      if (v === 's' || v === 'm' || v === 'l') return v;
+      if (v === 'xs' || v === 's' || v === 'm' || v === 'l') return v;
     }
     return 'm';
   });
-  const updateGridSize = (s: 's'|'m'|'l') => {
+  const updateGridSize = (s: 'xs'|'s'|'m'|'l') => {
     setGridSize(s);
     try { localStorage.setItem(gridSizeKey, s); } catch {}
   };
@@ -190,16 +190,15 @@ function PortfolioLayoutV0Inner({
         onSearchChange={setSearchQuery}
         placeholder="Search by player, set, cert #..."
       />
-      <div className="mt-7 h-screen bg-background text-foreground overflow-hidden">
-        <main>
-          <div className="flex w-full h-[calc(100vh-4rem)]">
+      <div className="flex flex-col h-[calc(100vh-5rem)] lg:h-[calc(100vh-4rem)] bg-background text-foreground">
+        <div className="flex w-full h-full">
           {/* Filters Sidebar */}
-            {!filtersCollapsed && (
-              <FiltersSidebar assets={assets} onHide={() => setFiltersCollapsed(true)} />
-            )}
-          <div className="flex-1 flex flex-col min-w-0">
-            {/* Top Bar matching main portfolio */}
-            <div className="flex-shrink-0 w-full border-b border-border bg-background sticky top-0 z-20">
+          {!filtersCollapsed && (
+            <FiltersSidebar assets={assets} onHide={() => setFiltersCollapsed(true)} />
+          )}
+          <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
+            {/* Top Bar matching main portfolio - scrolls with content on mobile, sticky on desktop */}
+            <div className="flex-shrink-0 w-full border-b border-border bg-background lg:sticky lg:top-0 z-20">
               <div className="mx-auto max-w-full px-4 sm:px-6 pt-4 pb-4 flex flex-row items-center justify-between">
                 <div className="flex items-start">
                   <PortfolioSummary
@@ -221,7 +220,7 @@ function PortfolioLayoutV0Inner({
                         aria-label="Show filters"
                       >
                         <div className="relative">
-                          <ListFilter className="h-4 w-4" />
+                          <ListFilter className="h-6 w-6 lg:h-4 lg:w-4" />
                           {activeCount > 0 && (
                             <span className="lg:hidden absolute -top-2 -right-2 min-w-[16px] h-[16px] flex items-center justify-center text-[9px] font-bold bg-primary text-primary-foreground rounded-full px-0.5">
                               {activeCount}
@@ -234,11 +233,13 @@ function PortfolioLayoutV0Inner({
                   />
                 </div>
                 <div className="flex items-center gap-2 sm:ml-auto">
-                  <PortfolioV0ColumnsPopover
-                    columns={columnDefs}
-                    onToggle={toggleColumn}
-                    onReset={resetColumns}
-                  />
+                  <div className="hidden lg:block">
+                    <PortfolioV0ColumnsPopover
+                      columns={columnDefs}
+                      onToggle={toggleColumn}
+                      onReset={resetColumns}
+                    />
+                  </div>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -260,26 +261,43 @@ function PortfolioLayoutV0Inner({
                       <Grid3X3 className="h-6 w-6" />
                     </Button>
                     {viewMode === 'grid' && (
-                      <div className="flex rounded-full overflow-hidden border border-border ml-1">
-                        {(['s','m','l'] as const).map(sz => (
-                          <button
-                            key={sz}
-                            type="button"
-                            onClick={() => updateGridSize(sz)}
-                            className={`h-10 w-10 flex items-center justify-center text-[11px] font-semibold tracking-wide transition-colors ${gridSize === sz ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/40'}`}
-                            aria-pressed={gridSize === sz}
-                          >
-                            {sz.toUpperCase()}
-                          </button>
-                        ))}
-                      </div>
+                      <>
+                        {/* Mobile: XS and S only */}
+                        <div className="lg:hidden flex rounded-full overflow-hidden border border-border ml-1">
+                          {(['xs', 's'] as const).map(sz => (
+                            <button
+                              key={sz}
+                              type="button"
+                              onClick={() => updateGridSize(sz)}
+                              className={`h-10 w-10 flex items-center justify-center text-[11px] font-semibold tracking-wide transition-colors ${gridSize === sz ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/40'}`}
+                              aria-pressed={gridSize === sz}
+                            >
+                              {sz.toUpperCase()}
+                            </button>
+                          ))}
+                        </div>
+                        {/* Desktop: S, M, L */}
+                        <div className="hidden lg:flex rounded-full overflow-hidden border border-border ml-1">
+                          {(['s','m','l'] as const).map(sz => (
+                            <button
+                              key={sz}
+                              type="button"
+                              onClick={() => updateGridSize(sz)}
+                              className={`h-10 w-10 flex items-center justify-center text-[11px] font-semibold tracking-wide transition-colors ${gridSize === sz ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/40'}`}
+                              aria-pressed={gridSize === sz}
+                            >
+                              {sz.toUpperCase()}
+                            </button>
+                          ))}
+                        </div>
+                      </>
                     )}
                   {/* Add Asset trigger removed from toolbar - FAB handles context actions on mobile */}
                 </div>
               </div>
             </div>
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto min-h-0 max-h-full">
+            {/* Content - part of the same scroll container */}
+            <div className="flex-1 min-h-0">
               <div className="mx-auto max-w-full px-0 sm:px-0 pt-0 h-full">
                 {isLoading ? (
                   <div className="flex items-center justify-center h-full text-muted-foreground">Loading assets...</div>
@@ -314,7 +332,7 @@ function PortfolioLayoutV0Inner({
             </div>
           </div>
         </div>
-      </main>
+      </div>
       {/* Add Asset Modal */}
       <AddAssetModalSimple open={addAssetOpen} onOpenChange={setAddAssetOpen} />
       
@@ -324,7 +342,6 @@ function PortfolioLayoutV0Inner({
         onClose={() => setIsFiltersDrawerOpen(false)}
         assets={assets}
       />
-    </div>
     </MobilePageWrapper>
   );
 }

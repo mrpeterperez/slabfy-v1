@@ -92,26 +92,28 @@ export function PortfolioSummaryV0({ userId, inline = false, title = 'My Portfol
     return (
       <div className="flex flex-col">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl lg:text-md font-regular text-muted-foreground">{title}</h1>
+          <h1 className="text-md lg:text-md font-regular text-foreground">{title}</h1>
           {prefix}
         </div>
-        <div className="mt-1 flex items-center flex-wrap gap-4 text-muted-foreground">
+        <div className="mt-1 flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4 text-muted-foreground">
           <AnimatedCounter 
             value={mainValue} 
-            className="text-[34px] lg:text-2xl font-semibold font-heading text-foreground"
+            className="text-3xl lg:text-2xl font-semibold font-heading text-foreground"
             duration={2000}
             showToggle={true}
             hiddenText="••••••"
             animateOnMount={animateOnMount}
           />
-          <div className="w-px h-6 bg-border" aria-hidden="true" />
-          <div className="flex items-center gap-1">
-            <User className="h-4 w-4" />
-            <span className="text-sm font-medium leading-none">{ownedCount.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Handshake className="h-4 w-4" />
-            <span className="text-sm font-medium leading-none">{consignCount.toLocaleString()}</span>
+          <div className="hidden lg:block w-px h-6 bg-border" aria-hidden="true" />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <User className="h-4 w-4" />
+              <span className="text-sm font-medium leading-none">{ownedCount.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Handshake className="h-4 w-4" />
+              <span className="text-sm font-medium leading-none">{consignCount.toLocaleString()}</span>
+            </div>
           </div>
         </div>
       </div>

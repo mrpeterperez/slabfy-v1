@@ -149,7 +149,7 @@ export const GroupedGroupRow: React.FC<GroupRowProps> = ({ assets, show, marketD
         )}
         {show.trend && (
           <td className="px-3 py-3 text-center align-middle sticky right-0 bg-background z-0">
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center justify-end">
               <div className="w-28 flex items-center justify-center">
                 {hasMarket ? (
                   <PortfolioSparkline assetId={rep.globalAssetId || rep.id} />

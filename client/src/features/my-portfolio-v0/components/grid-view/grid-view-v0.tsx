@@ -20,7 +20,7 @@ interface GridViewV0Props {
   assets: Asset[];
   onEdit?: (asset: Asset) => void;
   onDelete?: (asset: Asset) => void;
-  size?: 's' | 'm' | 'l';
+  size?: 'xs' | 's' | 'm' | 'l';
   // Visibility map aligned with table column keys (ownership, type, price (buy), current (market))
   visible?: Partial<Record<'ownership' | 'type' | 'price' | 'current', boolean>>;
 }
@@ -37,7 +37,7 @@ const GridAssetCard = ({
   asset: Asset;
   onEdit?: (asset: Asset) => void;
   onDelete?: (asset: Asset) => void;
-  size?: 's' | 'm' | 'l';
+  size?: 'xs' | 's' | 'm' | 'l';
   visible?: Partial<Record<'ownership' | 'type' | 'price' | 'current', boolean>>;
   groupCount?: number;
   marketValue?: number;
@@ -168,7 +168,9 @@ export function GridViewV0({ assets, onEdit, onDelete, size = 'm', visible }: Gr
     return Array.from(map.entries()).map(([key, group]) => ({ key, group }));
   }, [assets]);
 
-  const layoutClass = size === 's'
+  const layoutClass = size === 'xs'
+    ? 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 gap-2'
+    : size === 's'
     ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-3'
     : size === 'l'
       ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6'
