@@ -1,6 +1,5 @@
 import { createRoot } from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { ClickToComponent } from "click-to-react-component";
@@ -94,7 +93,6 @@ createRoot(rootEl!).render(
         return path;
       }}
     /> {/* 🔥 Option+Click to see file + open in VS Code! Check console for path info */}
-    <ReactQueryDevtools initialIsOpen={false} />
     <OfflineBanner />
     <TooltipProvider>
       <ThemeProvider defaultTheme="system" storageKey="slabfy-ui-theme" {...{attribute: "class"}}>

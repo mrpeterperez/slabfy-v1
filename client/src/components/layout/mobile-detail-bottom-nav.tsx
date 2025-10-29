@@ -2,7 +2,7 @@
 
 import type { LucideIcon } from "lucide-react";
 import { MoreHorizontal } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export interface DetailNavTab {
   key: string;
@@ -61,8 +61,8 @@ export function MobileDetailBottomNav({ tabs, moreItems, activeTab }: Props) {
 
           {/* More menu */}
           <div className="flex items-center justify-center">
-            <Sheet>
-              <SheetTrigger asChild>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <button
                   className="flex flex-col items-center justify-center py-2 text-xs text-muted-foreground hover:text-foreground"
                   aria-label="More"
@@ -70,28 +70,26 @@ export function MobileDetailBottomNav({ tabs, moreItems, activeTab }: Props) {
                   <MoreHorizontal className="h-5 w-5" aria-hidden />
                   <span className="mt-0.5 leading-none">More</span>
                 </button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="h-auto">
-                <SheetHeader>
-                  <SheetTitle>More Options</SheetTitle>
-                </SheetHeader>
-                <div className="py-4 space-y-2">
-                  {moreItems.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.key}
-                        onClick={item.onClick}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted rounded-lg transition-colors"
-                      >
-                        <Icon className="h-5 w-5 text-muted-foreground" />
-                        <span className="text-base font-medium">{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </SheetContent>
-            </Sheet>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side="top"
+                align="center"
+                className="min-w-[200px] rounded-xl border bg-background shadow-lg px-1 py-1.5"
+              >
+                {moreItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <DropdownMenuItem
+                      key={item.key}
+                      onClick={item.onClick}
+                    >
+                      <Icon className="h-4 w-4 mr-2" />
+                      {item.label}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

@@ -391,7 +391,7 @@ export function InventoryTableV2({ event, search: externalSearch, onSearchChange
                         { key: 'liquidity', visible: true },
                         { key: 'status', visible: true },
                         { key: 'ownership', visible: true },
-                        { key: 'action', visible: false },
+                        { key: 'action', visible: true },
                 ] as const), []);
 
                 const handleDeleteItem = async (itemId: string) => {
@@ -457,70 +457,71 @@ export function InventoryTableV2({ event, search: externalSearch, onSearchChange
                                         onToggleColumn={toggleColumn}
                                         onResetColumns={resetColumns}
                                 />
-                                </div>
+				</div>
 
-				{/* Mobile: Status tabs */}
-				<div className="lg:hidden border-b px-4 mt-0">
-					<nav className="flex gap-6">
-						{[
-							{ key: 'available' as V2Status, label: 'Available', count: statusCounts.available },
-							{ key: 'inCart' as V2Status, label: 'In Cart', count: statusCounts.inCart },
-							{ key: 'sold' as V2Status, label: 'Sold', count: statusCounts.sold },
-							{ key: 'all' as V2Status, label: 'All', count: statusCounts.all },
-						].map((tab) => (
-							<button
-								key={tab.key}
-								onClick={() => setStatus(tab.key)}
-								className={`py-3 text-base font-medium border-b-2 transition-colors ${
-									status === tab.key
-										? 'border-primary text-foreground'
-										: 'border-transparent text-muted-foreground'
-								}`}
-							>
-								{tab.label} <span className="text-sm">({tab.count})</span>
-							</button>
-						))}
-					</nav>
+				{/* Mobile wrapper with swipe detection */}
+				<div
+					className="lg:hidden"
+					onTouchStart={onTouchStart}
+					onTouchMove={onTouchMove}
+					onTouchEnd={onTouchEnd}
+				>
+					{/* Mobile: Status tabs */}
+					<div className="border-b px-4 mt-0">
+						<nav className="flex gap-6">
+							{[
+								{ key: 'available' as V2Status, label: 'Available', count: statusCounts.available },
+								{ key: 'inCart' as V2Status, label: 'In Cart', count: statusCounts.inCart },
+								{ key: 'sold' as V2Status, label: 'Sold', count: statusCounts.sold },
+								{ key: 'all' as V2Status, label: 'All', count: statusCounts.all },
+							].map((tab) => (
+								<button
+									key={tab.key}
+									onClick={() => setStatus(tab.key)}
+									className={`py-3 text-base font-medium border-b-2 transition-colors ${
+										status === tab.key
+											? 'border-primary text-foreground'
+											: 'border-transparent text-muted-foreground'
+									}`}
+								>
+									{tab.label} <span className="text-sm">({tab.count})</span>
+								</button>
+							))}
+						</nav>
+					</div>
+
+					{/* Mobile: card list */}
+					<div className="px-3 py-3 pb-64 w-full max-w-full min-h-[400px]">
+						<div className="divide-y divide-border">
+							{visibleRows.map((row: any) => (
+								<InventoryMobileCard
+									key={row.item.id}
+									row={row}
+									columns={mobileColumns as any}
+									onListPriceChange={patchListPrice}
+									onAssetClick={handleAssetClick}
+									onDeleteItem={handleDeleteItem}
+									onOpenStatusDialog={() => { /* no-op for v2 */ }}
+									onAddToCart={onAddToCart}
+									isInCart={isInCart}
+									onRemoveFromCart={onRemoveFromCart}
+								/>
+							))}
+							{(!isLoading && visibleRows.length === 0) && (
+								<EmptyState
+									icon={searchValue ? SearchIcon : PackageOpen}
+									title={searchValue ? "No results found" : "Nothing here yet"}
+									description={searchValue ? `No items match "${searchValue}"` : undefined}
+								/>
+							)}
+						</div>
+					</div>
 				</div>
 
 				{/* Status tabs (desktop) */}
 				<div className="hidden lg:block px-6 pb-0 border-border sticky top-16 border-b z-20 bg-background w-full max-w-full">
-                                        <InventoryV2StatusTabs value={status} onChange={setStatus} counts={statusCounts as any} />
-                                </div>
-
-                                {/* Mobile: card list to avoid column overlap */}
-                                <div 
-                                        className="lg:hidden px-3 py-3 w-full max-w-full"
-                                        onTouchStart={onTouchStart}
-                                        onTouchMove={onTouchMove}
-                                        onTouchEnd={onTouchEnd}
-                                >
-                                        <div className="divide-y divide-border">
-                                                {visibleRows.map((row: any) => (
-                                                        <InventoryMobileCard
-                                                                key={row.item.id}
-                                                                row={row}
-                                                                columns={mobileColumns as any}
-                                                                onListPriceChange={patchListPrice}
-                                                                onAssetClick={handleAssetClick}
-                                                                onDeleteItem={handleDeleteItem}
-                                                                onOpenStatusDialog={() => { /* no-op for v2 */ }}
-                                                                onAddToCart={onAddToCart}
-                                                                isInCart={isInCart}
-                                                                onRemoveFromCart={onRemoveFromCart}
-                                                        />
-                                ))}
-                                {(!isLoading && visibleRows.length === 0) && (
-                                        <EmptyState
-                                                icon={searchValue ? SearchIcon : PackageOpen}
-                                                title={searchValue ? "No results found" : "Nothing here yet"}
-                                                description={searchValue ? `No items match "${searchValue}"` : undefined}
-                                        />
-                                )}
-                        </div>
-                </div>
-
-                                {/* Desktop: table */}
+					<InventoryV2StatusTabs value={status} onChange={setStatus} counts={statusCounts as any} />
+				</div>                                {/* Desktop: table */}
                                 <div className="hidden lg:block overflow-x-auto w-full max-w-full">
                                         <table className="min-w-full w-full text-sm">
                                                 <thead className="bg-background border-b border-border sticky top-0 z-30">
