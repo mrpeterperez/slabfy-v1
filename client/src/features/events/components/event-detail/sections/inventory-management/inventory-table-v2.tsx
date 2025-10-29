@@ -26,6 +26,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AddToCartIconButton } from "@/components/ui/add-to-cart-icon-button";
 import { SalesDataStatus } from "@/components/ui/metrics/sales-data-status";
 import { TableSkeleton } from "@/components/ui/skeletons/table-skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Search as SearchIcon, PackageOpen } from "lucide-react";
 
 type SortColumn = "asset" | "listPrice" | "market" | "profit" | "confidence" | "liquidity" | "status" | "ownership";
 type SortDirection = "asc" | "desc";
@@ -79,6 +81,8 @@ const SortableHeader = ({ column, children, align = 'left', onToggleEdit, isEdit
 
 interface Props {
         event: Event;
+        search?: string;
+        onSearchChange?: (value: string) => void;
         onToggleCart?: () => void;
         cartCount?: number;
         onAddToCart?: (item: any) => void;
@@ -86,12 +90,23 @@ interface Props {
         onRemoveFromCart?: (id: string) => void;
 }
 
-export function InventoryTableV2({ event, onToggleCart, cartCount, onAddToCart, isInCart, onRemoveFromCart }: Props) {
+export function InventoryTableV2({ event, search: externalSearch, onSearchChange, onToggleCart, cartCount, onAddToCart, isInCart, onRemoveFromCart }: Props) {
         // Single source of truth for missing-image placeholder
         const NO_IMAGE_PLACEHOLDER = "https://koeoplnomfmuzreldryz.supabase.co/storage/v1/object/public/bucketv0/No-Image-Placeholder-Slabfy.png";
         const queryClient = useQueryClient();
         const [openAdd, setOpenAdd] = useState(false);
         const [search, setSearch] = useState("");
+        
+        // Use external search if provided, otherwise use internal state
+        const searchValue = externalSearch !== undefined ? externalSearch : search;
+        const handleSearchChange = (value: string) => {
+                if (onSearchChange) {
+                        onSearchChange(value);
+                } else {
+                        setSearch(value);
+                }
+        };
+        
         const [editCols, setEditCols] = useState<Set<'list' | 'status'>>(new Set());
         const toggleEditCol = (col: 'list' | 'status') => {
                 setEditCols(prev => { const n = new Set(prev); n.has(col) ? n.delete(col) : n.add(col); return n; });
@@ -266,7 +281,7 @@ export function InventoryTableV2({ event, onToggleCart, cartCount, onAddToCart, 
 
         // Apply search filter and optional pagination (rows per page) AFTER sorted exists
         const visibleRows = useMemo(() => {
-                const q = (search || "").trim().toLowerCase();
+                const q = (searchValue || "").trim().toLowerCase();
                 const filtered = !q
                         ? sorted
                         : sorted.filter((r: any) => {
@@ -278,7 +293,7 @@ export function InventoryTableV2({ event, onToggleCart, cartCount, onAddToCart, 
                                 return hay.includes(q);
                         });
                 return filtered;
-        }, [sorted, search]);
+        }, [sorted, searchValue]);
 
         const headerIds = useMemo(() => visibleRows.map(r => r.item.id), [visibleRows]);
         const headerChecked = selected.size > 0 && headerIds.every(id => selected.has(id));
@@ -389,8 +404,8 @@ export function InventoryTableV2({ event, onToggleCart, cartCount, onAddToCart, 
                                 <div className="w-full">
                                 <InventoryV2Toolbar
                                         count={items.length}
-                                        search={search}
-                                        onSearch={setSearch}
+                                        search={searchValue}
+                                        onSearch={handleSearchChange}
                                         onAddAssets={() => setOpenAdd(true)}
                                         onToggleCart={onToggleCart}
                                         cartCount={cartCount}
@@ -420,12 +435,16 @@ export function InventoryTableV2({ event, onToggleCart, cartCount, onAddToCart, 
                                                                 isInCart={isInCart}
                                                                 onRemoveFromCart={onRemoveFromCart}
                                                         />
-                                                ))}
-                                                {(!isLoading && visibleRows.length === 0) && (
-                                                        <div className="py-8 text-center text-muted-foreground">No inventory yet</div>
-                                                )}
-                                        </div>
-                                </div>
+                                ))}
+                                {(!isLoading && visibleRows.length === 0) && (
+                                        <EmptyState
+                                                icon={searchValue ? SearchIcon : PackageOpen}
+                                                title={searchValue ? "No results found" : "No inventory yet"}
+                                                description={searchValue ? `No items match "${searchValue}"` : undefined}
+                                        />
+                                )}
+                        </div>
+                </div>
 
                                 {/* Desktop: table */}
                                 <div className="hidden lg:block overflow-x-auto w-full max-w-full">
@@ -469,7 +488,13 @@ export function InventoryTableV2({ event, onToggleCart, cartCount, onAddToCart, 
                                                                                                                                 <TableSkeleton rows={6} showAssetThumb={false} columns={["list","market","profit","confidence","liquidity","status","actions"]} />
                                                                                                                         ) : visibleRows.length === 0 ? (
                                                                 <tr>
-                                                                                <td colSpan={2 + (visible.list?1:0) + (visible.market?1:0) + (visible.profit?1:0) + (status === 'sold' ? 3 : (visible.confidence?1:0) + (visible.liquidity?1:0)) + (visible.status?1:0) + (visible.ownership?1:0) + 1} className="px-6 py-10 text-center text-muted-foreground">No inventory yet</td>
+                                                                                <td colSpan={2 + (visible.list?1:0) + (visible.market?1:0) + (visible.profit?1:0) + (status === 'sold' ? 3 : (visible.confidence?1:0) + (visible.liquidity?1:0)) + (visible.status?1:0) + (visible.ownership?1:0) + 1} className="py-0">
+									<EmptyState
+										icon={searchValue ? SearchIcon : PackageOpen}
+										title={searchValue ? "No results found" : "No inventory yet"}
+										description={searchValue ? `No items match "${searchValue}"` : undefined}
+									/>
+								</td>
                                                                 </tr>
                                                         ) : (
                                                                 visibleRows.map(({ item, averagePrice, salesCount, confidence, liquidity, displayProfit }) => {

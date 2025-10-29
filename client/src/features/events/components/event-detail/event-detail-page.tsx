@@ -13,6 +13,7 @@ import {
   type DetailActionItem,
   MobilePageTitle
 } from "@/components/layout/detail-page-header";
+import { MobilePageTitleWithSearch } from "@/components/layout/mobile-page-title-with-search";
 import { Loader2, Package, Handshake, Settings, BarChart3, Archive, ArchiveRestore, Trash2, ShoppingCart, MoreHorizontal, Share2, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ShareStorefrontDialog } from "./share-storefront-dialog";
@@ -42,6 +43,9 @@ export function EventDetailPage() {
   const currentTab = (tab === "storefront" ? "inventory" : tab) || "inventory";
   const [, navigate] = useLocation();
   const { data: events, isLoading } = useEvents();
+
+  // Search state for inventory
+  const [inventorySearch, setInventorySearch] = useState("");
 
   // Cart state
   const [cartOpen, setCartOpen] = useState(false);
@@ -134,6 +138,8 @@ export function EventDetailPage() {
         return (
           <InventoryTableV2
             event={event}
+            search={inventorySearch}
+            onSearchChange={setInventorySearch}
             onToggleCart={() => setCartOpen(!cartOpen)}
             cartCount={cartItems.length}
             onAddToCart={handleAddToCart}
@@ -400,7 +406,16 @@ export function EventDetailPage() {
       />
 
       {/* Mobile Page Title - outside header */}
-      <MobilePageTitle title={getPageTitle()} />
+      {currentTab === 'inventory' ? (
+        <MobilePageTitleWithSearch
+          title={getPageTitle()}
+          searchValue={inventorySearch}
+          onSearchChange={setInventorySearch}
+          searchPlaceholder="Search inventory…"
+        />
+      ) : (
+        <MobilePageTitle title={getPageTitle()} />
+      )}
 
       {/* Main content area with EventCart */}
       <EventCart
