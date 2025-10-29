@@ -59,8 +59,8 @@ const AssetDetailsTabs: React.FC<AssetDetailsTabsProps> = ({
           })}
         </nav>
         
-        {/* Actions menu after tabs */}
-        <div className="flex-shrink-0 ml-4">
+        {/* Actions menu after tabs - desktop only */}
+        <div className="hidden lg:flex flex-shrink-0 ml-4">
           <AssetActions asset={asset} isOwner={isOwner} isSold={isSold} />
         </div>
       </div>

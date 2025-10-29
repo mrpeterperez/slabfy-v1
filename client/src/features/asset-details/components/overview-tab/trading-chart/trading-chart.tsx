@@ -49,9 +49,25 @@ export default function TradingChart({
   liquidityRating = 'cold',
   selectedTimeRange = '1M',
   onTimeRangeChange,
-  confidence = 0,
-  pricingData,
+  confidence,
+  pricingData
 }: TradingChartProps) {
+  // Detect if mobile - check on mount and resize
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1024;
+    }
+    return false;
+  });
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
 
   
@@ -318,12 +334,16 @@ export default function TradingChart({
       },
   width: chartWidth,
   height: chartHeight,
+      leftPriceScale: {
+        visible: false,
+      },
       rightPriceScale: {
         scaleMargins: {
-          top: isMobile ? 0.3 : 0.4,
-          bottom: 0.15,
+          top: isMobile ? 0.3 : 0.5,
+          bottom: 0.1,
         },
         borderVisible: false,
+        minimumWidth: 60,
       },
       timeScale: {
         borderVisible: false,
@@ -696,12 +716,25 @@ export default function TradingChart({
     });
     ro.observe(chartContainerRef.current);
     
+    // Add touch end handler to clear crosshair when finger is lifted
+    const handleTouchEnd = () => {
+      setLegendHover({ price: null, date: null });
+      chart.clearCrosshairPosition();
+    };
+    
+    chartContainerRef.current.addEventListener('touchend', handleTouchEnd);
+    chartContainerRef.current.addEventListener('touchcancel', handleTouchEnd);
+    
     // REMOVED: Mouse event listeners for scatter point hover tooltips to prevent duplicate labels
     // Now dots are purely visual - only the main chart legend shows price information
 
     return () => {
       ro.disconnect();
       attrObserver.disconnect();
+      if (chartContainerRef.current) {
+        chartContainerRef.current.removeEventListener('touchend', handleTouchEnd);
+        chartContainerRef.current.removeEventListener('touchcancel', handleTouchEnd);
+      }
       // Clear series instances before removing chart
       setAreaSeriesInstance(null);
       setRollingAverageSeriesInstance(null);
@@ -719,32 +752,61 @@ export default function TradingChart({
   /* ---------- render ---------- */
   return (
     <div className={`relative w-full h-full ${className} flex flex-col`}>
-      <div className="flex-1 relative">
-        <ChartLegend
-          cardData={cardData}
-          symbolName={symbolName}
-          averagePrice={averagePrice}
-          hoveredPrice={legendHover.price}
-          hoveredDate={legendHover.date}
-          isMobile={false}
-          salesData={salesData}
-          isLoadingSales={isLoadingSales}
-          salesCount={recentSalesCount}
-          liquidityRating={liquidityRating}
-          confidence={confidence}
-          pricingData={pricingData}
-          isMarkerTooltipVisible={false}
-          isRollingAverage={legendHover.isRollingAverage || false}
-          rollingAveragePrice={legendHover.rollingAveragePrice}
-          individualSalePrice={legendHover.individualSalePrice}
-          saleType={legendHover.saleType}
-          source={legendHover.source}
-        />
+      {/* Legend positioned above chart on mobile */}
+      {isMobile && (
+        <div className="relative pb-3">
+          <ChartLegend
+            cardData={cardData}
+            symbolName={symbolName}
+            averagePrice={averagePrice}
+            hoveredPrice={legendHover.price}
+            hoveredDate={legendHover.date}
+            isMobile={isMobile}
+            salesData={salesData}
+            isLoadingSales={isLoadingSales}
+            salesCount={recentSalesCount}
+            liquidityRating={liquidityRating}
+            confidence={confidence}
+            pricingData={pricingData}
+            isMarkerTooltipVisible={false}
+            isRollingAverage={legendHover.isRollingAverage || false}
+            rollingAveragePrice={legendHover.rollingAveragePrice}
+            individualSalePrice={legendHover.individualSalePrice}
+            saleType={legendHover.saleType}
+            source={legendHover.source}
+          />
+        </div>
+      )}
+      
+      <div className="flex-1 relative" style={{ marginTop: isMobile ? '-40px' : '0' }}>
+        {/* Legend overlaid on desktop */}
+        {!isMobile && (
+          <ChartLegend
+            cardData={cardData}
+            symbolName={symbolName}
+            averagePrice={averagePrice}
+            hoveredPrice={legendHover.price}
+            hoveredDate={legendHover.date}
+            isMobile={isMobile}
+            salesData={salesData}
+            isLoadingSales={isLoadingSales}
+            salesCount={recentSalesCount}
+            liquidityRating={liquidityRating}
+            confidence={confidence}
+            pricingData={pricingData}
+            isMarkerTooltipVisible={false}
+            isRollingAverage={legendHover.isRollingAverage || false}
+            rollingAveragePrice={legendHover.rollingAveragePrice}
+            individualSalePrice={legendHover.individualSalePrice}
+            saleType={legendHover.saleType}
+            source={legendHover.source}
+          />
+        )}
 
         <div
           ref={chartContainerRef}
           className="w-full h-full"
-          style={{ minHeight: '372px', height: '100%' }}
+          style={{ minHeight: '250px', height: '100%' }}
         />
         
 

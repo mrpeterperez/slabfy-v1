@@ -8,11 +8,13 @@
  * Usage: Complete chart header with asset details, pricing, and confidence
  */
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Asset } from "@shared/schema";
 import { ConfidenceMeter } from "../confidence-rating";
 import { SalesRecord } from "@shared/sales-types";
 import { VerifiedBadge } from "@/components/ui/verified-badge";
+import { PLACEHOLDER_IMAGE_URL } from '@/lib/constants';
+import { ImageLightbox } from '@/components/ui/image-lightbox';
 
 
 
@@ -59,6 +61,25 @@ export default function ChartLegend({
   source = null
 }: ChartLegendProps) {
   const legendRef = useRef<HTMLDivElement>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // Build image array for lightbox
+  const lightboxImages: string[] = [];
+  if (cardData?.psaImageFrontUrl) lightboxImages.push(cardData.psaImageFrontUrl);
+  if (cardData?.psaImageBackUrl) lightboxImages.push(cardData.psaImageBackUrl);
+  if (cardData?.assetImages && Array.isArray(cardData.assetImages)) {
+    lightboxImages.push(...cardData.assetImages);
+  }
+  if (lightboxImages.length === 0 && cardData?.imageUrl) {
+    lightboxImages.push(cardData.imageUrl);
+  }
+
+  // Display image for thumbnail (first image or placeholder)
+  const displayImage = cardData?.psaImageFrontUrl || 
+                       (cardData?.assetImages && cardData.assetImages[0]) || 
+                       cardData?.imageUrl || 
+                       PLACEHOLDER_IMAGE_URL;
 
   // Format price with dollar sign
   const formatPrice = (price: number) => {
@@ -140,100 +161,128 @@ export default function ChartLegend({
   return (
     <div 
       ref={legendRef}
-      className="absolute top-3 left-3 z-10 pointer-events-auto"
+      className={`${isMobile ? 'relative' : 'absolute top-3 left-3'} z-20 pointer-events-auto ${isMobile ? 'flex gap-3' : ''}`}
       style={{
         fontFamily: 'inherit',
-        maxWidth: isMobile ? '280px' : '70%'
+        maxWidth: isMobile ? '100%' : '70%'
       }}
     >
-      {/* Asset Set Title */}
-      <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
-        <span>{assetTitle}</span>
-        {cardData && <VerifiedBadge asset={cardData} className="flex-shrink-0" />}
-      </div>
-      
-      {/* Player Info with Variant */}
-      {playerInfo && (
-        <div className="text-xs text-muted-foreground mb-2">
-          {playerInfo}
+      {/* Mobile: 68px Image on the left */}
+      {isMobile && cardData && (
+        <div className="w-20 h-auto flex-shrink-0 rounded overflow-hidden bg-muted flex items-center justify-center">
+          <img
+            src={displayImage}
+            alt="Card"
+            className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => {
+              setLightboxIndex(0);
+              setLightboxOpen(true);
+            }}
+          />
         </div>
       )}
 
-      {/* Serial Number Information */}
-      {cardData?.serialNumbered && (cardData?.serialNumber || cardData?.serialMax) && (
-        <div className="text-xs text-muted-foreground mb-2">
-          Serial: {cardData?.serialNumber || "?"}/{cardData?.serialMax || "?"}
+      {/* Legend Content */}
+      <div className="flex-1 min-w-0 overflow-hidden">
+        {/* Asset Set Title */}
+        <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
+          <span className="truncate">{assetTitle}</span>
+          {cardData && <VerifiedBadge asset={cardData} className="flex-shrink-0" />}
         </div>
-      )}
       
-      {/* Price with Optional Confidence */}
-      <div className="flex items-center gap-3 mb-1">
-        {isPricingLoading ? (
-          <div className="h-8 w-24 bg-muted animate-pulse rounded"></div>
-        ) : showPrice ? (
-          <div className="flex items-center gap-3">
-            {/* Primary price - rolling average when available, otherwise regular price */}
-            <span className="text-2xl font-bold text">
-              {rollingAveragePrice ? formatPrice(rollingAveragePrice) : formattedPrice}
-            </span>
-            
-            {/* Secondary price - individual sale when both are available */}
-            {rollingAveragePrice && individualSalePrice && (
-              <span className="flex items-center gap-1">
-                <span className="text-sm font-bold text-success">
-                  {formatPrice(individualSalePrice)}
-                </span>
-                {source && (
-                  <>
-                    <span className="text-muted-foreground" style={{ fontSize: '0.75rem' }}>•</span>
-                    <span className="text-muted-foreground" style={{ fontSize: '0.75rem' }}>
-                      {source.includes('slabfy') ? 'Slabfy' : 'eBay'}
-                    </span>
-                  </>
-                )}
-                {saleType && (
-                  <>
-                    <span className="text-muted-foreground" style={{ fontSize: '0.75rem' }}>•</span>
-                    <span className="text-muted-foreground" style={{ fontSize: '0.75rem' }}>
-                      {saleType}
-                    </span>
-                  </>
-                )}
+        {/* Player Name and Variant */}
+        {playerInfo && (
+          <div className="text-xs text-muted-foreground mb-1 truncate">
+            {playerInfo}
+          </div>
+        )}
+
+        {/* Serial Number */}
+        {cardData?.serialNumbered && (cardData?.serialNumber || cardData?.serialMax) && (
+          <div className="text-xs text-muted-foreground mb-1 truncate">
+            Serial: {cardData?.serialNumber || "?"}/{cardData?.serialMax || "?"}
+          </div>
+        )}
+      
+        {/* Price with Optional Confidence */}
+        <div className="flex items-center gap-3 mb-1">
+          {isPricingLoading ? (
+            <div className="h-8 w-24 bg-muted animate-pulse rounded"></div>
+          ) : showPrice ? (
+            <div className="flex items-center gap-3">
+              {/* Primary price - rolling average when available, otherwise regular price */}
+              <span className="text-2xl font-bold text">
+                {rollingAveragePrice ? formatPrice(rollingAveragePrice) : formattedPrice}
               </span>
-            )}
+              
+              {/* Secondary price - individual sale when both are available */}
+              {rollingAveragePrice && individualSalePrice && (
+                <span className="flex items-center gap-1">
+                  <span className="text-sm font-bold text-success">
+                    {formatPrice(individualSalePrice)}
+                  </span>
+                  {source && (
+                    <>
+                      <span className="text-muted-foreground" style={{ fontSize: '0.75rem' }}>•</span>
+                      <span className="text-muted-foreground" style={{ fontSize: '0.75rem' }}>
+                        {source.includes('slabfy') ? 'Slabfy' : 'eBay'}
+                      </span>
+                    </>
+                  )}
+                  {saleType && (
+                    <>
+                      <span className="text-muted-foreground" style={{ fontSize: '0.75rem' }}>•</span>
+                      <span className="text-muted-foreground" style={{ fontSize: '0.75rem' }}>
+                        {saleType}
+                      </span>
+                    </>
+                  )}
+                </span>
+              )}
+            </div>
+          ) : null}
+          {showConfidence && !isPricingLoading && confidence > 0 && (
+            <ConfidenceMeter 
+              confidence={confidence} 
+              salesCount={pricingData?.salesCount || salesCount || 0} 
+            />
+          )}
+        </div>
+        
+        {/* Date/Period */}
+        <div className="text-xs text-muted-foreground mb-2 truncate">
+          {displayDate}
+        </div>
+
+        {/* Sales Count and Liquidity Rating - hide when hovering over specific data points */}
+        {isPricingLoading ? (
+          <div className="h-4 w-20 bg-muted animate-pulse rounded"></div>
+        ) : (salesCount > 0 && showConfidence) ? (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{salesCount} sales</span>
+            <span>•</span>
+            <span className={`capitalize ${
+              liquidityRating === 'fire' ? 'text-destructive' :
+              liquidityRating === 'hot' ? 'text-warning' :
+              liquidityRating === 'warm' ? 'text-warning' :
+              liquidityRating === 'cool' ? 'text-brand' :
+              'text-muted-foreground'
+            }`}>
+              {liquidityRating}
+            </span>
           </div>
         ) : null}
-        {showConfidence && !isPricingLoading && confidence > 0 && (
-          <ConfidenceMeter 
-            confidence={confidence} 
-            salesCount={pricingData?.salesCount || salesCount || 0} 
-          />
-        )}
-      </div>
-      
-      {/* Date/Period */}
-      <div className="text-xs text-muted-foreground mb-2">
-        {displayDate}
       </div>
 
-      {/* Sales Count and Liquidity Rating - hide when hovering over specific data points */}
-      {isPricingLoading ? (
-        <div className="h-4 w-20 bg-muted animate-pulse rounded"></div>
-      ) : (salesCount > 0 && showConfidence) ? (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{salesCount} sales</span>
-          <span>•</span>
-          <span className={`capitalize ${
-            liquidityRating === 'fire' ? 'text-destructive' :
-            liquidityRating === 'hot' ? 'text-warning' :
-            liquidityRating === 'warm' ? 'text-warning' :
-            liquidityRating === 'cool' ? 'text-brand' :
-            'text-muted-foreground'
-          }`}>
-            {liquidityRating}
-          </span>
-        </div>
-      ) : null}
+      {/* Lightbox */}
+      {lightboxOpen && lightboxImages.length > 0 && (
+        <ImageLightbox
+          images={lightboxImages}
+          currentIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+          onNavigate={setLightboxIndex}
+        />
+      )}
     </div>
   );
 }

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { VerifiedEditAssetDialog } from "@/features/edit-asset";
 import { ManualEditAssetDialog } from "@/features/edit-asset/components/manual-edit-asset-dialog";
+import { MobileAssetActionsDrawer } from "./mobile-asset-actions-drawer";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -53,6 +54,7 @@ export const AssetActions = ({ asset, isOwner = true, isSold = false, onEdit, on
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isManualEditDialogOpen, setIsManualEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState<'sold' | 'mistake' | 'other' | ''>(''); // No pre-selection
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [saleData, setSaleData] = useState({
@@ -250,9 +252,19 @@ export const AssetActions = ({ asset, isOwner = true, isSold = false, onEdit, on
   
   return (
     <>
+      {/* Mobile: 3-dot button opens drawer */}
+      <button
+        onClick={() => setIsMobileDrawerOpen(true)}
+        className="lg:hidden min-w-[48px] min-h-[48px] flex items-center justify-center"
+        aria-label="Open asset actions menu"
+      >
+        <MoreHorizontal className="h-6 w-6" />
+      </button>
+
+      {/* Desktop: Dropdown menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
+          <Button variant="ghost" className="hidden lg:flex h-8 w-8 p-0">
             <span className="sr-only">Open asset actions menu</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
@@ -326,6 +338,34 @@ export const AssetActions = ({ asset, isOwner = true, isSold = false, onEdit, on
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Mobile Actions Drawer */}
+      <MobileAssetActionsDrawer
+        isOpen={isMobileDrawerOpen}
+        onClose={() => setIsMobileDrawerOpen(false)}
+        asset={asset}
+        isOwner={isOwner}
+        isSold={isSold}
+        onEdit={handleEditClick}
+        onRefreshSales={handleRefreshSales}
+        onDelete={() => {
+          if (onDelete) {
+            onDelete();
+          } else {
+            if (isConsignmentAsset) {
+              const consignmentId = asset.consignmentId;
+              if (consignmentId) {
+                navigate(`/consignments/${consignmentId}`);
+              } else {
+                navigate('/consignments');
+              }
+            } else {
+              setIsDeleteDialogOpen(true);
+            }
+          }
+        }}
+        isRefreshing={refreshSalesMutation.isPending}
+      />
       
       {/* Edit Dialog - will only render when open to avoid unnecessary renders */}
       {isEditDialogOpen && (

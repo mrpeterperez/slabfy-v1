@@ -17,7 +17,7 @@ interface Props {
 
 export function AssetDetailHeader({ asset, assetId, activeTab, isOwner, isSold }: Props) {
   return (
-    <div className="sticky h-18 top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+    <div className="!hidden lg:!block sticky h-18 top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
       <div className="container">
         {/* Tabs with actions menu - sticky to top */}
         <AssetDetailsTabs assetId={assetId} currentTab={activeTab} asset={asset} isOwner={isOwner} isSold={isSold} />

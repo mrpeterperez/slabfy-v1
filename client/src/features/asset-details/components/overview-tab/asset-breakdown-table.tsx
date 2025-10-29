@@ -4,7 +4,7 @@
   // Part of the `asset-details` feature, under the overview-tab subfolder.
   // Uses Lucide icons for visual indicators.
 
-  import React, { useMemo } from "react";
+  import React, { useMemo, useState } from "react";
   import {
   Award,
   Calendar,
@@ -14,6 +14,7 @@
   Percent,
   Info,
   ExternalLink,
+  Pencil,
   } from "lucide-react";
   import { Asset } from "@shared/schema";
   import { InlineEditableCell } from "./inline-editable-cell";
@@ -23,6 +24,12 @@
   import { OwnershipBadge, getOwnershipType } from "@/components/ui/ownership-badge";
   import { PortfolioSparkline } from "@/components/ui/metrics/sparkline/portfolio-sparkline";
   import { useAuth } from "@/components/auth-provider";
+  import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
+  import { Button } from "@/components/ui/button";
+  import { Input } from "@/components/ui/input";
+  import { Label } from "@/components/ui/label";
+  import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+  import { format, isValid } from "date-fns";
 
   // SlabFy logo component for branded purchases
   function SlabfyLogo({ className = "" }: { className?: string }) {
@@ -146,6 +153,19 @@
     relatedAssets = [] 
   }) => {
     const { mutate: updateAsset } = useAssetUpdate();
+    const [isMobile, setIsMobile] = useState(false);
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [editingField, setEditingField] = useState<'date' | 'price' | null>(null);
+    const [editingItemId, setEditingItemId] = useState<string | null>(null);
+    const [editValue, setEditValue] = useState<string>('');
+
+    // Detect mobile
+    React.useEffect(() => {
+      const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+      checkMobile();
+      window.addEventListener('resize', checkMobile);
+      return () => window.removeEventListener('resize', checkMobile);
+    }, []);
     
     // Combine the current asset with any related assets that have the same card but different cert numbers
     const breakdownItems = useMemo(() => {
@@ -203,7 +223,50 @@
       });
     };
 
+    // Open drawer for editing
+    const openDateDrawer = (itemId: string, currentDate: string | null) => {
+      setEditingItemId(itemId);
+      setEditingField('date');
+      // Format date as YYYY-MM-DD for calendar component (avoid timezone shifts)
+      let formattedDate = '';
+      if (currentDate) {
+        try {
+          const date = new Date(`${currentDate}T12:00:00`);
+          if (isValid(date)) {
+            formattedDate = date.toISOString().split('T')[0];
+          }
+        } catch (error) {
+          console.error('Invalid date format:', currentDate);
+        }
+      }
+      setEditValue(formattedDate);
+      setDrawerOpen(true);
+    };
+
+    const openPriceDrawer = (itemId: string, currentPrice: number | null) => {
+      setEditingItemId(itemId);
+      setEditingField('price');
+      setEditValue(currentPrice?.toString() || '');
+      setDrawerOpen(true);
+    };
+
+    const handleDrawerSave = () => {
+      if (!editingItemId) return;
+      
+      if (editingField === 'date') {
+        handlePurchaseDateUpdate(editingItemId, editValue || null);
+      } else if (editingField === 'price') {
+        handlePurchasePriceUpdate(editingItemId, editValue ? parseFloat(editValue) : null);
+      }
+      
+      setDrawerOpen(false);
+      setEditingItemId(null);
+      setEditingField(null);
+      setEditValue('');
+    };
+
   return (
+  <>
   <div className="">
   <div className="bg-card rounded-lg border overflow-hidden">
 
@@ -253,23 +316,46 @@
     <span className="text-muted-foreground">—</span>
   ) : item.buyOfferId ? (
     // SlabFy purchase - read-only with formatted date
-    <span className="text-muted-foreground">
-      {item.purchaseDate 
-        ? new Date(item.purchaseDate).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-          })
-        : 'No date set'}
-    </span>
+    <div className="flex items-center gap-2">
+      <Calendar className="text-muted-foreground flex-shrink-0" size={16} />
+      <span className="text-muted-foreground">
+        {item.purchaseDate 
+          ? new Date(item.purchaseDate).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            })
+          : 'No date set'}
+      </span>
+    </div>
+  ) : isMobile ? (
+    // Mobile - click calendar icon to open drawer
+    <button
+      onClick={() => openDateDrawer(item.id, item.purchaseDate)}
+      className="flex items-center gap-2 text-left hover:text-primary transition-colors"
+    >
+      <Calendar className="text-muted-foreground flex-shrink-0" size={16} />
+      <span className="text-muted-foreground">
+        {item.purchaseDate 
+          ? new Date(item.purchaseDate).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            })
+          : 'No date set'}
+      </span>
+    </button>
   ) : (
-    // Editable for non-SlabFy purchases
-    <InlineEditableCell
-      value={item.purchaseDate}
-      type="date"
-      onSave={(newDate) => handlePurchaseDateUpdate(item.id, newDate as string)}
-      placeholder="No date set"
-    />
+    // Desktop - editable inline
+    <div className="flex items-center gap-2 whitespace-nowrap">
+      <Calendar className="text-muted-foreground flex-shrink-0" size={16} />
+      <InlineEditableCell
+        value={item.purchaseDate}
+        type="date"
+        onSave={(newDate) => handlePurchaseDateUpdate(item.id, newDate as string)}
+        placeholder="No date set"
+      />
+    </div>
   )}
   </td>
   <td className="py-4 px-4">
@@ -278,21 +364,33 @@
   ) : item.buyOfferId ? (
     // SlabFy purchase - read-only with dollar sign
     <div className="flex items-center">
-    <DollarSign className="text-muted-foreground mr-1 flex-shrink-0" size={16} />
-    <span className="text-muted-foreground">
-      {item.purchasePrice ? item.purchasePrice.toFixed(2) : 'No price set'}
-    </span>
+      <DollarSign className="text-muted-foreground mr-1 flex-shrink-0" size={16} />
+      <span className="text-muted-foreground">
+        {item.purchasePrice ? item.purchasePrice.toFixed(2) : 'No price set'}
+      </span>
     </div>
+  ) : isMobile ? (
+    // Mobile - click to open drawer
+    <button
+      onClick={() => openPriceDrawer(item.id, item.purchasePrice)}
+      className="flex items-center gap-1 text-left hover:text-primary transition-colors"
+    >
+      <DollarSign className="text-muted-foreground flex-shrink-0" size={16} />
+      <span className="text-muted-foreground">
+        {item.purchasePrice ? item.purchasePrice.toFixed(2) : 'No price set'}
+      </span>
+      <Pencil className="text-muted-foreground flex-shrink-0" size={14} />
+    </button>
   ) : (
-    // Editable for non-SlabFy purchases
+    // Desktop - editable inline
     <div className="flex items-center">
-    <DollarSign className="text-muted-foreground mr-1 flex-shrink-0" size={16} />
-    <InlineEditableCell
-      value={item.purchasePrice}
-      type="price"
-      onSave={(newPrice) => handlePurchasePriceUpdate(item.id, newPrice as number)}
-      placeholder="No price set"
-    />
+      <DollarSign className="text-muted-foreground mr-1 flex-shrink-0" size={16} />
+      <InlineEditableCell
+        value={item.purchasePrice}
+        type="price"
+        onSave={(newPrice) => handlePurchasePriceUpdate(item.id, newPrice as number)}
+        placeholder="No price set"
+      />
     </div>
   )}
   </td>
@@ -381,6 +479,68 @@
   </div>
   </div>
   </div>
+
+  {/* Edit Drawer for Mobile */}
+  <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+    <DrawerContent>
+      <DrawerHeader>
+        <DrawerTitle>
+          {editingField === 'date' ? 'Edit Purchase Date' : 'Edit Purchase Price'}
+        </DrawerTitle>
+      </DrawerHeader>
+      <div className="p-4 space-y-4">
+        {editingField === 'date' ? (
+          <div className="space-y-2">
+            <Label>Purchase Date</Label>
+            <div className="flex justify-center">
+              <CalendarComponent
+                mode="single"
+                selected={
+                  editValue && isValid(new Date(`${editValue}T12:00:00`))
+                    ? new Date(`${editValue}T12:00:00`)
+                    : undefined
+                }
+                onSelect={(date) => {
+                  if (!date) return;
+                  // Store as YYYY-MM-DD to avoid timezone issues
+                  const isoDate = date.toISOString().split('T')[0];
+                  setEditValue(isoDate);
+                }}
+                disabled={(date) => 
+                  date > new Date() || date < new Date('1900-01-01')
+                }
+                initialFocus
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label htmlFor="edit-value">Purchase Price ($)</Label>
+            <Input
+              id="edit-value"
+              type="number"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+            />
+          </div>
+        )}
+        <div className="flex gap-2">
+          <Button onClick={handleDrawerSave} className="flex-1">
+            Save
+          </Button>
+          <DrawerClose asChild>
+            <Button variant="outline" className="flex-1">
+              Cancel
+            </Button>
+          </DrawerClose>
+        </div>
+      </div>
+    </DrawerContent>
+  </Drawer>
+  </>
   );
   };
 

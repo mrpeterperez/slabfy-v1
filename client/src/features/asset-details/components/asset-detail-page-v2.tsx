@@ -11,18 +11,11 @@ import { Asset } from "@shared/schema";
 import { useAuth } from "@/components/auth-provider";
 // PSA metadata now comes from the asset data directly
 import { Separator } from "@/components/ui/separator";
-import { 
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator
-} from "@/components/ui/breadcrumb";
 
 
 // Import components
 import { AssetDetailHeader } from "./asset-detail-header";
+import { MobileAssetHeader } from "./mobile-asset-header";
 import { AssetDetailMobile } from "./asset-detail-mobile";
 import { AssetDetailDesktop } from "./asset-detail-desktop";
 import { useUserAssets } from "../hooks/use-user-assets";
@@ -155,49 +148,6 @@ export const AssetDetailPageV2 = ({ providedAsset }: { providedAsset?: Asset }) 
     cachedAssets: allUserAssets,
   });
 
-  // Dynamic breadcrumb logic
-  const getBreadcrumbConfig = (source: string): { label: string; path: string | null } => {
-    switch (source) {
-  case 'buy-mode':
-        // For buy-mode, if no offerId or opened in new tab, show generic breadcrumb
-        if (!offerId) {
-          return {
-    label: 'Asset Details', // No change when detached
-            path: null // No navigation - just label for new tab context
-          };
-        } else {
-          return {
-  label: 'Buying Desk',
-            path: `/buy-mode/${offerId}` // Route back to specific offer
-          };
-        }
-      case 'consignments':
-        return {
-          label: 'Asset Details',
-          path: null // No navigation - just show generic label for consignments context
-        };
-      case 'events':
-        return {
-          label: 'Events',
-          path: '/events'
-        };
-      case 'search':
-        return {
-          label: 'Search',
-          path: '/search'
-        };
-      case 'portfolio':
-      default:
-        return {
-          label: 'Portfolio',
-          path: '/portfolio'
-        };
-    }
-  };
-
-  const breadcrumbConfig = getBreadcrumbConfig(fromSource);
-
-
   // If we're still loading (auth or asset data) and don't have a provided asset
   if ((authLoading || isLoading) && !providedAsset) {
     return (
@@ -231,6 +181,17 @@ export const AssetDetailPageV2 = ({ providedAsset }: { providedAsset?: Asset }) 
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Mobile Header - only on mobile */}
+      <MobileAssetHeader
+        asset={asset}
+        isOwner={isOwner}
+        isSold={isSold}
+      />
+      
+      {/* Spacer for fixed mobile header */}
+      <div className="!block lg:!hidden h-16" aria-hidden="true" />
+      
+      {/* Desktop Header with Tabs - hidden on mobile */}
       <AssetDetailHeader
         asset={asset}
         assetId={id}

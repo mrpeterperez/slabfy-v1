@@ -26,20 +26,14 @@ interface Props {
 
 export function AssetDetailMobile({ asset, isOwner, isSold, ownershipStatus, activeTab, relatedAssets, variations, isLoadingVariations }: Props) {
   return (
-    <div className="block lg:hidden">
+    <div className="!block lg:!hidden pb-24">
       {activeTab === "overview" && (
         <div className="space-y-6">
-          <div className="block sm:hidden">
+          {/* Chart for all mobile/tablet sizes - image now inside chart legend */}
+          <div className="w-full">
             <MobileChartLayout asset={asset} />
           </div>
-          <div className="hidden sm:grid grid-cols-5 gap-6">
-            <div className="col-span-2 min-h-[300px] flex items-center">
-              <AssetImages asset={asset} />
-            </div>
-            <div className="col-span-3 min-h-[300px]">
-              <ChartComponent cardData={asset} />
-            </div>
-          </div>
+          
           <div className="space-y-12 mt-3">
             <div>
               <h2 className="text-xl font-semibold font-heading mb-3">Asset Overview</h2>

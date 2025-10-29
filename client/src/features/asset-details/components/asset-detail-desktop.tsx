@@ -26,7 +26,7 @@ interface Props {
 
 export function AssetDetailDesktop({ asset, isOwner, isSold, ownershipStatus, activeTab, relatedAssets, variations, isLoadingVariations }: Props) {
   return (
-    <div className="hidden lg:block">
+    <div className="!hidden lg:!block">
       {activeTab === "overview" && (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-3">

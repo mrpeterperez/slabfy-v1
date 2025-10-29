@@ -5,6 +5,7 @@
 // Dependencies: react, lucide-react, @/components/ui, @shared/schema
 
 import { useMemo } from 'react';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { AssetTypeBadge } from '@/components/ui/asset-type-badge';
 import { OwnershipBadge, getOwnershipType } from '@/components/ui/ownership-badge';
@@ -42,6 +43,7 @@ const GridAssetCard = ({
   groupCount?: number;
   marketValue?: number;
 }) => {
+  const [, navigate] = useLocation();
   const purchasePrice = parseFloat(asset.purchasePrice?.toString() || '0');
 
   // Normalize visibility (default true when undefined)
@@ -51,7 +53,7 @@ const GridAssetCard = ({
   const showCurrent = visible?.current !== false;
 
   const handleAssetClick = () => {
-    window.open(`/assets/${asset.id}`, '_blank');
+    navigate(`/assets/${asset.id}`);
   };
 
   // Using proper OwnershipBadge component instead of hardcoded Badge

@@ -56,7 +56,11 @@ export function MobilePortfolioCard({ asset, market, index, onClick, groupCount 
       {/* Main content row */}
       <div className="flex gap-4 relative">
         {/* Thumbnail - same as table */}
-        <div className="h-auto w-14 flex-shrink-0 bg-muted rounded overflow-hidden flex items-center justify-center relative">
+        <button
+          type="button"
+          onClick={() => onClick(asset)}
+          className="h-auto w-14 flex-shrink-0 bg-muted rounded overflow-hidden flex items-center justify-center relative"
+        >
           <img 
             src={asset.psaImageFrontUrl || PLACEHOLDER_IMAGE_URL} 
             alt="card" 
@@ -72,7 +76,7 @@ export function MobilePortfolioCard({ asset, market, index, onClick, groupCount 
               {groupCount}
             </div>
           )}
-        </div>
+        </button>
 
         {/* Text content - clickable */}
         <button

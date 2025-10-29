@@ -58,30 +58,6 @@ export default function ConfidenceMeter({
       }`}>
         {confidence}%
       </div>
-      {/* Enhanced Visual Bar */}
-      <div className="flex items-center gap-2">
-        <div className="w-16 h-2 border rounded-full overflow-hidden">
-          <div 
-            className={`h-full transition-all duration-500 ease-out ${
-              color === 'green' ? 'bg-gradient-to-r from-green-400 to-green-600' :
-              color === 'yellow' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' :
-              'bg-gradient-to-r from-red-400 to-red-600'
-            }`}
-            style={{ width: `${confidence}%` }}
-          />
-        </div>
-
-        {/* Confidence Level Text */}
-        <span className={`text-xs font-medium ${
-          color === 'green' ? 'text-success' :
-          color === 'yellow' ? 'text-warning' :
-          'text-destructive'
-        }`}>
-          {confidence >= 70 ? 'High' :
-           confidence >= 40 ? 'Medium' :
-           'Low'}
-        </span>
-      </div>
       
       {/* Responsive Info Tooltip */}
       <ResponsiveTooltip

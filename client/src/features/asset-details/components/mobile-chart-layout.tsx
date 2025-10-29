@@ -28,19 +28,8 @@ export const MobileChartLayout: React.FC<MobileChartLayoutProps> = ({ asset }) =
   };
 
   return (
-    <>
-      {/* Chart with image positioned next to it */}
-      <div className="grid grid-cols-1 gap-4 min-h-[300px]">
-    
-
-        {/* Right: Chart */}
-        <div>
-           
-          <ChartComponent 
-            cardData={asset}
-          />
-        </div>
-      </div>
-    </>
+    <div className="w-full">
+      <ChartComponent cardData={asset} />
+    </div>
   );
 };

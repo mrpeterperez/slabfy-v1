@@ -105,7 +105,7 @@ export function BreadcrumbsHeader({
 
   return (
     <div
-      className={`sticky top-0 z-20 bg-background border-b border-border ${className}`}
+      className={`!hidden lg:!block sticky top-0 z-20 bg-background border-b border-border ${className}`}
     >
       <div className={`max-w-full sm:px-2 py-1 flex items-center gap-1`}>
         <button
