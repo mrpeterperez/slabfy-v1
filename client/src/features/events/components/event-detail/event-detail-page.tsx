@@ -10,7 +10,8 @@ import { useEvents } from "../../hooks/use-events";
 import { 
   DetailPageHeader, 
   type DetailNavItem as PageNavItem, 
-  type DetailActionItem 
+  type DetailActionItem,
+  MobilePageTitle
 } from "@/components/layout/detail-page-header";
 import { Loader2, Package, Handshake, Settings, BarChart3, Archive, ArchiveRestore, Trash2, ShoppingCart, MoreHorizontal, Share2, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -89,15 +90,11 @@ export function EventDetailPage() {
     setCartTotals(totals);
   }, []);
 
-
-
-  // Back-compat: redirect /storefront to /inventory
+  // Redirect to inventory tab if no tab or if using old /storefront route
   useEffect(() => {
-    if (tab === "storefront" && id) navigate(`/events/${id}/inventory`);
-  }, [tab, id, navigate]);
-  // Default: when no tab provided, navigate to inventory
-  useEffect(() => {
-    if (!tab && id) navigate(`/events/${id}/inventory`);
+    if (id && (!tab || tab === "storefront")) {
+      navigate(`/events/${id}/inventory`, { replace: true });
+    }
   }, [tab, id, navigate]);
 
   if (!id) return <div>Event not found</div>;
@@ -298,6 +295,12 @@ export function EventDetailPage() {
 
   const basePath = `/events/${id}`;
 
+  // Get page title based on current tab
+  const getPageTitle = () => {
+    const navItem = navigationItems.find(item => item.id === currentTab);
+    return navItem ? navItem.label : 'Inventory';
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Unified Header with Navigation */}
@@ -395,6 +398,9 @@ export function EventDetailPage() {
           </div>
         }
       />
+
+      {/* Mobile Page Title - outside header */}
+      <MobilePageTitle title={getPageTitle()} />
 
       {/* Main content area with EventCart */}
       <EventCart

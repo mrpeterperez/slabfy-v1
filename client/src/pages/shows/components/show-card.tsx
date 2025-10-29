@@ -50,7 +50,7 @@ export function ShowCard({ event, onClick }: ShowCardProps) {
     >
       <div className="flex gap-4 pt-0 p-4">
         {/* Date Card - Left Side */}
-        <div className="flex-shrink-0 w-[88px] bg-background rounded-lg border flex flex-col items-center justify-center px-2 self-stretch">
+        <div className="flex-shrink-0 w-[88px] bg-card rounded-lg border flex flex-col items-center justify-center px-2 self-stretch">
           <div className="text-xs text-muted-foreground uppercase">{month}</div>
           <div className="text-xl font-bold leading-tight my-1">{dateRange}</div>
           <div className="text-xs text-muted-foreground">{year}</div>

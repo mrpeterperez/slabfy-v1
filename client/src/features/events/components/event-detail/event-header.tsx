@@ -7,14 +7,11 @@
 import { Button } from "@/components/ui/button";
 import { useState, useMemo } from "react";
 import {
-  Home,
-  Calendar,
-  User,
-  LogOut,
   MoreHorizontal,
   ShoppingCart,
   Handshake,
   Share2,
+  ChevronLeft,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -25,17 +22,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useLocation } from "wouter";
-import { useAuth } from "@/components/auth-provider";
 import { Event } from "@shared/schema";
 import { format } from "date-fns";
 import { EditEventDialog } from "../edit-event/edit-event-dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { MobileTopNav } from "@/components/layout/mobile-top-nav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ShareStorefrontDialog } from "./share-storefront-dialog";
 // Legacy buy-mode offers removed; buying-desk is the new surface
@@ -52,9 +41,7 @@ export function EventDetailHeader({
   cartCount,
 }: EventDetailHeaderProps) {
   const [, setLocation] = useLocation();
-  const { signOut } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
-  const [infoOpen, setInfoOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const offers: any[] = [];
 
@@ -68,11 +55,6 @@ export function EventDetailHeader({
       return 0;
     }
   }, [offers, event.id]);
-
-  const handleLogout = async () => {
-    await signOut();
-    setLocation("/signin");
-  };
 
   // Parse a YYYY-MM-DD string as a local Date (no timezone shift)
   const parseDateOnly = (dateStr: string) => {
@@ -201,98 +183,57 @@ export function EventDetailHeader({
                 </DropdownMenu>
               </div>
             </div>
-            {/* Mobile Layout - sticky reusable top nav (no back) */}
+            {/* Mobile Layout - matching mobile-asset-header style */}
             <div className="md:hidden w-full">
-              <MobileTopNav
-                title={event.name}
-                onInfo={() => setInfoOpen(true)}
-                right={
-                  <div className="flex items-center">
-                    {/* Offers count */}
-                    <Button
-                      variant="outline"
-                      className="h-12 w-12 min-h-[3rem] min-w-[3rem] p-0 rounded-full relative"
-                      onClick={() => setLocation("/buying-desk")}
-                      aria-label="Offers"
-                    >
-                      <Handshake className="h-4 w-4" />
-                      {offerCount > 0 && (
-                        <span className="absolute -top-1 -right-1 inline-flex h-5 min-w-[1.1rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground ring-2 ring-background">
-                          {offerCount}
-                        </span>
-                      )}
-                    </Button>
-                    {onToggleCart && (
+              <div className="flex h-16 items-center justify-between">
+                {/* Back Button - Left */}
+                <button
+                  onClick={() => {
+                    if (window.history.length > 1) {
+                      window.history.back();
+                    } else {
+                      setLocation("/events");
+                    }
+                  }}
+                  className="flex items-center justify-center min-w-[48px] min-h-[48px] -ml-3"
+                  aria-label="Go back"
+                >
+                  <ChevronLeft className="h-7 w-7" />
+                </button>
+
+                {/* Title - Center */}
+                <div className="absolute left-1/2 -translate-x-1/2 text-center max-w-[60%]">
+                  <h1 className="text-base font-semibold truncate">
+                    Show Details
+                  </h1>
+                </div>
+
+                {/* 3-Dot Menu - Right */}
+                <div className="flex items-center justify-center min-w-[48px] min-h-[48px]">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
                       <Button
-                        variant="outline"
-                        className="h-12 w-12 min-h-[3rem] min-w-[3rem] p-0 rounded-full relative"
-                        onClick={onToggleCart}
-                        aria-label="Toggle cart"
+                        variant="ghost"
+                        className="h-12 w-12 min-h-[3rem] min-w-[3rem] p-0"
                       >
-                        <ShoppingCart className="h-4 w-4" />
-                        {(cartCount ?? 0) > 0 && (
-                          <span className="absolute -top-1 -right-1 inline-flex h-5 min-w-[1.1rem] items-center justify-center rounded-full bg-success px-1 text-[10px] font-semibold text-white ring-2 ring-background">
-                            {cartCount}
-                          </span>
-                        )}
+                        <MoreHorizontal className="h-4 w-4" />
                       </Button>
-                    )}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="h-12 w-12 min-h-[3rem] min-w-[3rem] p-0"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          className="h-12 text-base"
-                          onClick={() => setEditOpen(true)}
-                        >
-                          Edit Show
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="h-12 text-base">
-                          Duplicate Show
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="h-12 text-base text-destructive">
-                          Delete Show
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                }
-              />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        className="h-12 text-base"
+                        onClick={() => {/* TODO: implement archive */}}
+                      >
+                        Archive Event
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </header>
-      {/* Info Sheet for mobile */}
-      <Sheet open={infoOpen} onOpenChange={setInfoOpen}>
-        <SheetContent
-          side="bottom"
-          className="pb-safe-bottom rounded-t-3xl pt-3 sm:pt-4"
-        >
-          {/* Grab handle for modern drawer UX */}
-          <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-muted-foreground/30" />
-          <SheetHeader>
-            <SheetTitle className="font-heading text-xl">
-              Event Information
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-4 space-y-1 text-sm">
-            <div className="font-medium">{event.name}</div>
-            <div className="text-muted-foreground">
-              {formatEventDate(event.dateStart, event.dateEnd)}
-            </div>
-            {event.location && (
-              <div className="text-muted-foreground">{event.location}</div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
       <EditEventDialog
         open={editOpen}
         onOpenChange={setEditOpen}
