@@ -24,6 +24,7 @@ import { useBulkSelection } from "@/hooks/use-bulk-selection";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { Archive, ArchiveRestore, Trash2 } from "lucide-react";
 import { MobilePageWrapper } from "@/components/layout/mobile-page-wrapper";
+import { ShowsMobile } from "./shows/shows-mobile";
 
 export function EventsPage() {
   usePageTitle("Shows");
@@ -32,6 +33,16 @@ export function EventsPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [timeFilter, setTimeFilter] = useState("last-30-days");
   const [showArchived, setShowArchived] = useState(false);
+
+  // Show mobile version on small screens
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // data loading
   const { data: events, isLoading, error } = useEvents(showArchived);
@@ -87,6 +98,11 @@ export function EventsPage() {
         </main>
       </div>
     );
+  }
+
+  // Show mobile version on small screens (after all hooks are called)
+  if (isMobile) {
+    return <ShowsMobile />;
   }
 
   return (
