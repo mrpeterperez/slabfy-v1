@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ExternalLink, Pencil, ChevronsUpDown, ChevronUp, ChevronDown, MoreHorizontal } from "lucide-react";
+import { ExternalLink, Pencil, ChevronsUpDown, ChevronUp, ChevronDown, MoreHorizontal, Plus } from "lucide-react";
 import { OwnershipBadge, getOwnershipType } from "@/components/ui/ownership-badge";
 import { ConfidenceIndicator as ConfidenceBars } from "@/components/ui/metrics/confidence-indicator";
 import { LiquidityIndicator as LiquidityBars } from "@/components/ui/metrics/liquidity-indicator";
@@ -157,6 +157,14 @@ export function InventoryTableV2({ event, search: externalSearch, onSearchChange
 
         // Status filter and counts
         const [status, setStatus] = useState<V2Status>('available');
+
+        // Touch handlers for swipe between status tabs
+        const [touchStart, setTouchStart] = useState(0);
+        const [touchEnd, setTouchEnd] = useState(0);
+        const [touchStartY, setTouchStartY] = useState(0);
+        const [touchEndY, setTouchEndY] = useState(0);
+        const minSwipeDistance = 50;
+
         const statusCounts = useMemo(() => {
                 const c = { all: 0, available: 0, reserved: 0, sold: 0, removed: 0, inCart: 0 } as Record<string, number>;
                 (items as any[]).forEach((it: any) => {
@@ -398,6 +406,42 @@ export function InventoryTableV2({ event, search: externalSearch, onSearchChange
                         } catch {}
                 };
 
+                // Swipe handlers for status tabs
+                const onTouchStart = (e: React.TouchEvent) => {
+                        setTouchEnd(0);
+                        setTouchStart(e.targetTouches[0].clientX);
+                        setTouchStartY(e.targetTouches[0].clientY);
+                };
+
+                const onTouchMove = (e: React.TouchEvent) => {
+                        setTouchEnd(e.targetTouches[0].clientX);
+                        setTouchEndY(e.targetTouches[0].clientY);
+                };
+
+                const onTouchEnd = () => {
+                        if (!touchStart || !touchEnd) return;
+                        
+                        const distanceX = touchStart - touchEnd;
+                        const distanceY = Math.abs(touchStartY - touchEndY);
+                        
+                        // Only trigger swipe if horizontal movement is greater than vertical (not scrolling)
+                        if (distanceY > 30) return;
+                        
+                        const isLeftSwipe = distanceX > minSwipeDistance;
+                        const isRightSwipe = distanceX < -minSwipeDistance;
+
+                        // Tab order: available → inCart → sold → all
+                        const tabs: V2Status[] = ['available', 'inCart', 'sold', 'all'];
+                        const currentIndex = tabs.indexOf(status);
+                        
+                        if (isLeftSwipe && currentIndex < tabs.length - 1) {
+                                setStatus(tabs[currentIndex + 1]);
+                        }
+                        if (isRightSwipe && currentIndex > 0) {
+                                setStatus(tabs[currentIndex - 1]);
+                        }
+                };
+
                 return (
                         <div className="flex-1 min-w-0 w-full max-w-full">
                                 {/* Toolbar (desktop) */}
@@ -414,13 +458,43 @@ export function InventoryTableV2({ event, search: externalSearch, onSearchChange
                                         onResetColumns={resetColumns}
                                 />
                                 </div>
-                                {/* Status tabs (match V1 style/placement) */}
-                                <div className="hidden lg:block px-6 pb-0 border-border sticky top-16 border-b z-20 bg-background w-full max-w-full">
+
+				{/* Mobile: Status tabs */}
+				<div className="lg:hidden border-b px-4 mt-0">
+					<nav className="flex gap-6">
+						{[
+							{ key: 'available' as V2Status, label: 'Available', count: statusCounts.available },
+							{ key: 'inCart' as V2Status, label: 'In Cart', count: statusCounts.inCart },
+							{ key: 'sold' as V2Status, label: 'Sold', count: statusCounts.sold },
+							{ key: 'all' as V2Status, label: 'All', count: statusCounts.all },
+						].map((tab) => (
+							<button
+								key={tab.key}
+								onClick={() => setStatus(tab.key)}
+								className={`py-3 text-base font-medium border-b-2 transition-colors ${
+									status === tab.key
+										? 'border-primary text-foreground'
+										: 'border-transparent text-muted-foreground'
+								}`}
+							>
+								{tab.label} <span className="text-sm">({tab.count})</span>
+							</button>
+						))}
+					</nav>
+				</div>
+
+				{/* Status tabs (desktop) */}
+				<div className="hidden lg:block px-6 pb-0 border-border sticky top-16 border-b z-20 bg-background w-full max-w-full">
                                         <InventoryV2StatusTabs value={status} onChange={setStatus} counts={statusCounts as any} />
                                 </div>
 
                                 {/* Mobile: card list to avoid column overlap */}
-                                <div className="lg:hidden px-3 py-3 w-full max-w-full">
+                                <div 
+                                        className="lg:hidden px-3 py-3 w-full max-w-full"
+                                        onTouchStart={onTouchStart}
+                                        onTouchMove={onTouchMove}
+                                        onTouchEnd={onTouchEnd}
+                                >
                                         <div className="divide-y divide-border">
                                                 {visibleRows.map((row: any) => (
                                                         <InventoryMobileCard
@@ -439,7 +513,7 @@ export function InventoryTableV2({ event, search: externalSearch, onSearchChange
                                 {(!isLoading && visibleRows.length === 0) && (
                                         <EmptyState
                                                 icon={searchValue ? SearchIcon : PackageOpen}
-                                                title={searchValue ? "No results found" : "No inventory yet"}
+                                                title={searchValue ? "No results found" : "Nothing here yet"}
                                                 description={searchValue ? `No items match "${searchValue}"` : undefined}
                                         />
                                 )}
@@ -488,10 +562,10 @@ export function InventoryTableV2({ event, search: externalSearch, onSearchChange
                                                                                                                                 <TableSkeleton rows={6} showAssetThumb={false} columns={["list","market","profit","confidence","liquidity","status","actions"]} />
                                                                                                                         ) : visibleRows.length === 0 ? (
                                                                 <tr>
-                                                                                <td colSpan={2 + (visible.list?1:0) + (visible.market?1:0) + (visible.profit?1:0) + (status === 'sold' ? 3 : (visible.confidence?1:0) + (visible.liquidity?1:0)) + (visible.status?1:0) + (visible.ownership?1:0) + 1} className="py-0">
+								<td colSpan={2 + (visible.list?1:0) + (visible.market?1:0) + (visible.profit?1:0) + (status === 'sold' ? 3 : (visible.confidence?1:0) + (visible.liquidity?1:0)) + (visible.status?1:0) + (visible.ownership?1:0) + 1} className="py-0">
 									<EmptyState
 										icon={searchValue ? SearchIcon : PackageOpen}
-										title={searchValue ? "No results found" : "No inventory yet"}
+										title={searchValue ? "No results found" : "Nothing here yet"}
 										description={searchValue ? `No items match "${searchValue}"` : undefined}
 									/>
 								</td>
@@ -780,10 +854,17 @@ export function InventoryTableV2({ event, search: externalSearch, onSearchChange
                                                         <Button onClick={confirmUndoSell} disabled={!undoConfirmed} className="bg-primary">Yes, Move to Available</Button>
                                                 </DialogFooter>
                                         </DialogContent>
-                                </Dialog>
-                </div>
-        );
-}
+				</Dialog>
 
-export default InventoryTableV2;
+				{/* Floating Add Button (Mobile only) */}
+				<button
+					onClick={() => setOpenAdd(true)}
+					className="lg:hidden fixed bottom-20 right-6 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-40"
+					aria-label="Add assets"
+				>
+					<Plus className="h-6 w-6" />
+				</button>
+		</div>
+	);
+}export default InventoryTableV2;
 

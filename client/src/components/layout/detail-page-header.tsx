@@ -137,15 +137,15 @@ export function DetailPageHeader({
   isLoading = false,
   leftContent,
   rightContent,
-  className
+  className,
 }: DetailPageHeaderProps) {
-  const [, setLocation] = useLocation();
+  const [, navigate] = useLocation();
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
 
   const handleNavClick = (item: DetailNavItem) => {
     if (basePath) {
       const fullPath = item.path === '' ? basePath : `${basePath}${item.path}`;
-      setLocation(fullPath);
+      navigate(fullPath);
     }
     onNavigate?.(item.id);
   };
@@ -157,7 +157,7 @@ export function DetailPageHeader({
   };
 
   return (
-    <header className={cn("bg-background border-b border-border", className)}>
+    <header className={cn("bg-background border-b border-border sticky top-0 z-40", className)}>
       <div className="mx-auto px-4 sm:px-6 lg:px-4">
         {/* Desktop Header */}
         <div className="hidden lg:flex h-16 items-center w-full">
@@ -251,7 +251,7 @@ export function DetailPageHeader({
         <div className="lg:hidden flex h-16 items-center justify-between">
           {/* Back Button - Left */}
           <button
-            onClick={() => window.history.go(-1)}
+            onClick={() => navigate('/events')}
             className="flex items-center justify-center min-w-[48px] min-h-[48px] -ml-3"
             aria-label="Go back"
           >

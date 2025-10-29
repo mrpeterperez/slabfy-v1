@@ -14,6 +14,7 @@ import {
   MobilePageTitle
 } from "@/components/layout/detail-page-header";
 import { MobilePageTitleWithSearch } from "@/components/layout/mobile-page-title-with-search";
+import { MobileDetailBottomNav, type DetailNavTab, type DetailNavMoreItem } from "@/components/layout/mobile-detail-bottom-nav";
 import { Loader2, Package, Handshake, Settings, BarChart3, Archive, ArchiveRestore, Trash2, ShoppingCart, MoreHorizontal, Share2, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ShareStorefrontDialog } from "./share-storefront-dialog";
@@ -307,6 +308,45 @@ export function EventDetailPage() {
     return navItem ? navItem.label : 'Inventory';
   };
 
+  // Mobile bottom nav config
+  const mobileNavTabs: DetailNavTab[] = [
+    {
+      key: 'inventory',
+      label: 'Inventory',
+      icon: Package,
+      onClick: () => navigate(`${basePath}/inventory`),
+    },
+    {
+      key: 'orders',
+      label: 'Orders',
+      icon: Receipt,
+      badge: 0, // TODO: fetch order count
+      onClick: () => navigate(`${basePath}/orders`),
+    },
+    {
+      key: 'buy-sessions',
+      label: 'Buy Sessions',
+      icon: Handshake,
+      onClick: () => navigate(`${basePath}/buy-sessions`),
+    },
+    {
+      key: 'cart',
+      label: 'Cart',
+      icon: ShoppingCart,
+      badge: cartItems.length,
+      onClick: () => setCartOpen(true),
+    },
+  ];
+
+  const mobileNavMoreItems: DetailNavMoreItem[] = [
+    {
+      key: 'settings',
+      label: 'Settings',
+      icon: Settings,
+      onClick: () => navigate(`${basePath}/settings`),
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       {/* Unified Header with Navigation */}
@@ -428,7 +468,9 @@ export function EventDetailPage() {
         onReserve={handleReserve}
         onTotalsChange={handleTotalsChange}
       >
-        <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden h-full w-full">
+        <div 
+          className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden h-full w-full"
+        >
           {currentTab === "analytics" && (
             <div className="mb-6">
               <EventStatsCards event={event} />
@@ -458,6 +500,13 @@ export function EventDetailPage() {
         open={shareOpen}
         onOpenChange={setShareOpen}
         event={event}
+      />
+
+      {/* Mobile Detail Bottom Nav */}
+      <MobileDetailBottomNav
+        tabs={mobileNavTabs}
+        moreItems={mobileNavMoreItems}
+        activeTab={currentTab}
       />
     </div>
   );
