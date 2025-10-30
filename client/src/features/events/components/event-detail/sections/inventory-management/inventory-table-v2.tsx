@@ -335,10 +335,10 @@ export function InventoryTableV2({ event, search: externalSearch, onSearchChange
                 // For non-sold items, use personal asset view
                 const own = getOwnershipType(it);
                 if (own === 'portfolio' && it.userAssetId) {
-                        window.open(`/assets/${it.userAssetId}?from=events`, '_blank');
+                        navigateTo(`/assets/${it.userAssetId}?from=events`);
                         return;
                 }
-                if (it.globalAssetId) window.open(`/assets/${it.globalAssetId}?from=events`, '_blank');
+                if (it.globalAssetId) navigateTo(`/assets/${it.globalAssetId}?from=events`);
         };
 
         const patchListPrice = async (id: string, price: number) => {

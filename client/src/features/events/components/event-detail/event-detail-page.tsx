@@ -76,7 +76,6 @@ export function EventDetailPage() {
   const handleAddToCart = (item: any) => {
     const currentListPrice = Number(item?.askingPrice || 0) || 0;
     setCartItems((prev) => (isInCart(item.id) ? prev : [...prev, { id: item.id, item, price: currentListPrice }]));
-    setCartOpen(true);
   };
   const removeFromCart = (iid: string) => setCartItems((prev) => prev.filter((ci) => ci.id !== iid));
 

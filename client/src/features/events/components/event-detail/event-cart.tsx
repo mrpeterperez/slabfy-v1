@@ -4,7 +4,7 @@
 // Feature: events
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { ShoppingCart, X, Edit2, Check, ExternalLink } from "lucide-react";
+import { X, Edit2, Check, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/components/auth-provider";
 import { loadUserPrefs, saveUserPrefs } from "@/lib/user-preferences";
+import { EventCartMobile } from "./event-cart-mobile";
 import type { Event } from "shared/schema";
 
 export interface CartItem {
@@ -474,36 +475,6 @@ export function EventCart({
     });
   };
 
-  const renderMobileCartItems = () => {
-    if (cartItems.length === 0) {
-      return <div className="text-sm text-muted-foreground py-10 text-center">No items in cart.</div>;
-    }
-
-    return (
-      <div className="space-y-3">
-        {cartItems.map((ci) => {
-          const title = ci.item?.playerName || "Unknown";
-          const subtitle = `${ci.item?.year ?? ""} ${ci.item?.setName ?? ""} • #${ci.item?.cardNumber ?? ""} • PSA ${
-            ci.item?.grade ?? ""
-          }`.trim();
-          
-          return (
-            <div key={ci.id} className="flex items-start gap-3 bg-card p-3 rounded-lg">
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold truncate">{title}</div>
-                <div className="text-xs text-muted-foreground truncate">{subtitle}</div>
-                <div className="text-lg font-semibold">${Number(ci.price || 0).toFixed(2)}</div>
-                <Button variant="link" className="px-0 text-xs text-muted-foreground" onClick={() => removeFromCart(ci.id)}>
-                  Remove
-                </Button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
   const renderDesktopCart = () => (
     <div ref={desktopAreaRef} className="flex-1 min-h-0 min-w-0 flex">
       {cartOpen ? (
@@ -686,56 +657,30 @@ export function EventCart({
     </div>
   );
 
-  const renderMobileCart = () => {
-    if (!cartOpen) return null;
-
-    return (
-      <div className="lg:hidden fixed inset-0 bg-black/20 z-50">
-        <div className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-background shadow-xl flex flex-col">
-          <div className="flex items-center justify-between px-4 py-3 border-b">
-            <div className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-foreground" />
-              <span className="font-semibold">Cart ({cartItems.length})</span>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => onCartOpenChange(false)} aria-label="Close cart">
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-          <div className="flex-1 overflow-auto p-4">
-            {renderMobileCartItems()}
-          </div>
-          <div className="border-t p-4 sticky bottom-0 z-10 bg-background/95 supports-[backdrop-filter]:bg-background/80 backdrop-blur">
-            <div className="flex items-center justify-between font-semibold text-lg mb-3">
-              <div className="flex items-center gap-2">
-                <span>Total</span>
-                <button
-                  type="button"
-                  onClick={() => setRoundOff((r) => !r)}
-                  className="text-primary text-sm font-normal hover:underline"
-                >
-                  {roundOff ? "Use Exact Total" : "+ Round Off"}
-                </button>
-              </div>
-              <span>${finalSell.toFixed(2)}</span>
-            </div>
-            <div className="space-y-2">
-              <Button className="w-full" onClick={onCheckout} disabled={cartItems.length === 0}>
-                Checkout
-              </Button>
-              <Button variant="outline" className="w-full" onClick={onReserve} disabled={cartItems.length === 0}>
-                Reserve
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <>
       {renderDesktopCart()}
-      {renderMobileCart()}
+      <EventCartMobile
+        event={event}
+        isOpen={cartOpen}
+        onClose={() => onCartOpenChange(false)}
+        cartItems={cartItems}
+        totalMarket={totalMarket}
+        discountedProfit={discountedProfit}
+        discountedProfitMargin={discountedProfitMargin}
+        finalSell={finalSell}
+        showDiscount={showDiscount}
+        discountType={discountType}
+        discountValue={discountValue}
+        roundOff={roundOff}
+        onShowDiscountChange={setShowDiscount}
+        onDiscountTypeChange={setDiscountType}
+        onDiscountValueChange={setDiscountValue}
+        onRoundOffToggle={() => setRoundOff((r) => !r)}
+        onCheckout={onCheckout}
+        onReserve={onReserve}
+        renderCartItems={renderCartItems}
+      />
     </>
   );
 }

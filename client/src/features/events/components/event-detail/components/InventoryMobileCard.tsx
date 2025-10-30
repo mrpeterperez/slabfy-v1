@@ -166,10 +166,15 @@ export function InventoryMobileCard({
 
   return (
     <div className="py-3">
-      <div className="flex gap-3">
+      <div className="flex gap-3 cursor-pointer" onClick={() => onAssetClick(item)}>
         {/* Left: Slab image */}
         <div className="relative h-full w-28 shrink-0 overflow-hidden rounded-md bg-muted">
-          <img src={item.psaImageFrontUrl || PLACEHOLDER_IMAGE_URL} alt={item.playerName || ""} className="h-full w-full object-cover" loading="lazy" />
+          <img 
+            src={item.psaImageFrontUrl || PLACEHOLDER_IMAGE_URL} 
+            alt={item.playerName || ""} 
+            className="h-full w-full object-cover" 
+            loading="lazy" 
+          />
         </div>
 
         {/* Right: Content + Controls */}
@@ -213,7 +218,10 @@ export function InventoryMobileCard({
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                        onClick={() => setListPriceDrawerOpen(true)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setListPriceDrawerOpen(true);
+                        }}
                         aria-label="Edit list price"
                       >
                         <Edit2 className="h-4 w-4" />
@@ -234,7 +242,7 @@ export function InventoryMobileCard({
           </div>
 
           {/* Right controls: 3-dot menu (top-right) + centered Add (+) */}
-          <div className="relative flex-none w-10">
+          <div className="relative flex-none w-10" onClick={(e) => e.stopPropagation()}>
             <div className="absolute top-0 right-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -264,7 +272,10 @@ export function InventoryMobileCard({
                 variant="outline"
                 size="icon"
                 className="absolute right-0 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full border border-brand text-brand hover:bg-brand-subtle"
-                onClick={() => onAddToCart?.(item)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddToCart?.(item);
+                }}
                 disabled={!(item.status === 'available' || item.status === 'pending' || !item.status) || !!isInCart?.(item.id)}
                 aria-label="Add to cart"
               >
