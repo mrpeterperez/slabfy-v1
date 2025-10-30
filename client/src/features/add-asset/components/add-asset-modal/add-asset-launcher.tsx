@@ -11,6 +11,14 @@ import { useToast } from '@/hooks/use-toast';
 import { AddAssetModalSimple } from './add-asset-modal-simple';
 import { ManualAddAssetDialog } from '../manual-asset-entry';
 import { CameraScanner } from '../camera-scanner';
+import { analyzeCardImage, type AnalyzedCardFields } from '@/features/card-vision';
+import { DualScanCamera } from '@/features/card-vision/components/dual-scan-camera';
+import { ProcessingQueue } from '@/features/card-vision/components/processing-queue';
+import { analyzeCardImages } from '@/features/card-vision/services/card-vision';
+import type { QueuedCard } from '@/features/card-vision/types';
+
+// Rate limiting configuration
+const MAX_CONCURRENT_PROCESSING = 2;
 
 interface AddAssetLauncherProps {
   open?: boolean;
@@ -27,8 +35,12 @@ export function AddAssetLauncher({
   const [scanOptionsOpen, setScanOptionsOpen] = useState(false);
   const [scanModalOpen, setScanModalOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [dualScanOpen, setDualScanOpen] = useState(false); // NEW: Dual-scan camera
+  const [queueOpen, setQueueOpen] = useState(false); // NEW: Processing queue
+  const [processingQueue, setProcessingQueue] = useState<QueuedCard[]>([]); // NEW: Queue state
   const [manualModalOpen, setManualModalOpen] = useState(false);
   const [scannedCertNumber, setScannedCertNumber] = useState<string | undefined>(undefined);
+  const [prefilledData, setPrefilledData] = useState<AnalyzedCardFields | undefined>(undefined);
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const { toast } = useToast();
 
@@ -72,10 +84,117 @@ export function AddAssetLauncher({
   };
 
   const handlePhotoClick = () => {
-    toast({
-      title: "Photo Capture",
-      description: "This feature will be available in an upcoming update.",
-    });
+    // Open dual-scan camera
+    setDualScanOpen(true);
+    setOpen(false);
+  };
+
+  const handleDualScanCapture = async (card: QueuedCard) => {
+    // Add card to queue with processing status
+    setProcessingQueue(prev => [card, ...prev]);
+    
+    // Show queue if not already open
+    setQueueOpen(true);
+
+    // Check rate limiting
+    const processingCount = processingQueue.filter(c => c.status === 'processing').length;
+    
+    if (processingCount >= MAX_CONCURRENT_PROCESSING) {
+      // Queue is full, don't process yet
+      toast({
+        title: 'Processing queue',
+        description: `Processing ${processingCount} cards. This card will process next.`,
+      });
+      return;
+    }
+
+    // Process the card in background
+    processCard(card);
+  };
+
+  const processCard = async (card: QueuedCard) => {
+    try {
+      const result = await analyzeCardImages(card.frontImage, card.backImage);
+      
+      // Update card in queue with success status
+      setProcessingQueue(prev => 
+        prev.map(c => c.id === card.id ? { 
+          ...c, 
+          status: 'success' as const,
+          result 
+        } : c)
+      );
+
+      toast({
+        title: "Card analyzed!",
+        description: `${result.fields.playerName || 'Card'} ready to add`,
+      });
+
+      // Process next queued card if any
+      processNextInQueue();
+    } catch (error) {
+      // Update card in queue with failed status
+      setProcessingQueue(prev => 
+        prev.map(c => c.id === card.id ? { 
+          ...c, 
+          status: 'failed' as const,
+          error: error instanceof Error ? error.message : 'Analysis failed'
+        } : c)
+      );
+
+      toast({
+        title: "Analysis failed",
+        description: "Tap the card to try again or enter manually",
+        variant: "destructive",
+      });
+
+      // Process next queued card even if this one failed
+      processNextInQueue();
+    }
+  };
+
+  const processNextInQueue = () => {
+    // Find next card that's in 'processing' state but not actually being processed
+    const processingCount = processingQueue.filter(c => c.status === 'processing').length;
+    
+    if (processingCount < MAX_CONCURRENT_PROCESSING) {
+      // Find a queued card (added but not yet processed)
+      const nextCard = processingQueue.find(c => 
+        c.status === 'processing' && !c.result && !c.error
+      );
+      
+      if (nextCard) {
+        processCard(nextCard);
+      }
+    }
+  };
+
+  const handleQueueCardClick = (card: QueuedCard) => {
+    if (card.status === 'failed') {
+      // Retry failed card
+      const updatedCard = { ...card, status: 'processing' as const, error: undefined };
+      setProcessingQueue(prev => prev.map(c => c.id === card.id ? updatedCard : c));
+      processCard(updatedCard);
+      return;
+    }
+
+    if (card.status === 'success' && card.result) {
+      // Route based on card type
+      if (card.result.isPSAFastPath && card.result.certNumber) {
+        // PSA fast path - open cert lookup
+        setScannedCertNumber(card.result.certNumber);
+        setScanModalOpen(true);
+        setQueueOpen(false);
+      } else {
+        // Manual entry with pre-filled fields
+        setPrefilledData(card.result.fields);
+        setManualModalOpen(true);
+        setQueueOpen(false);
+      }
+
+      // Remove from queue after opening
+      setProcessingQueue(prev => prev.filter(c => c.id !== card.id));
+    }
   };
 
   const handleManualClick = () => {
@@ -350,13 +469,30 @@ export function AddAssetLauncher({
       <ManualAddAssetDialog
         open={manualModalOpen}
         onOpenChange={setManualModalOpen}
+        initialData={prefilledData} // Pass AI-detected data
       />
 
-      {/* Camera Scanner */}
+      {/* Camera Scanner - Barcode Mode */}
       <CameraScanner
         open={cameraOpen}
         onClose={() => setCameraOpen(false)}
         onScan={handleCameraScan}
+        mode="scan"
+      />
+
+      {/* Dual-Scan Camera for AI Analysis */}
+      <DualScanCamera
+        open={dualScanOpen}
+        onClose={() => setDualScanOpen(false)}
+        onCapture={handleDualScanCapture}
+      />
+
+      {/* Processing Queue */}
+      <ProcessingQueue
+        cards={processingQueue}
+        open={queueOpen}
+        onOpenChange={setQueueOpen}
+        onCardClick={handleQueueCardClick}
       />
     </>
   );

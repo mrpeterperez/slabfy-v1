@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -29,16 +29,21 @@ import { SerialNumberSection } from "./serial-number-section";
 import { PurchaseInfoSection } from "./purchase-info-section";
 import { AdditionalInfoSection } from "./additional-info-section";
 
+// NEW: Import AI-detected card fields type
+import type { AnalyzedCardFields } from "@/features/card-vision";
+
 type FormValues = z.infer<typeof insertAssetSchema>;
 
 interface ManualAddAssetDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  initialData?: AnalyzedCardFields; // NEW: Pre-filled data from AI vision
 }
 
 export const ManualAddAssetDialog = ({
   open: controlledOpen,
   onOpenChange: setControlledOpen,
+  initialData, // NEW: Receive AI-detected data
 }: ManualAddAssetDialogProps = {}) => {
   // Use internal state if not controlled externally
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
@@ -75,7 +80,7 @@ export const ManualAddAssetDialog = ({
       year: undefined,
       cardNumber: undefined,
       variant: undefined,
-  grader: "PSA",
+      grader: "PSA",
       grade: undefined,
       certNumber: undefined,
       serialNumbered: false,
@@ -90,6 +95,43 @@ export const ManualAddAssetDialog = ({
       notes: undefined,
     },
   });
+
+  // NEW: Pre-fill form with AI-detected data when initialData changes
+  useEffect(() => {
+    if (initialData && open) {
+      // Build a title from detected fields
+      const titleParts = [
+        initialData.year,
+        initialData.brand,
+        initialData.series,
+        initialData.playerName,
+        initialData.cardNumber ? `#${initialData.cardNumber}` : undefined,
+        initialData.parallel,
+        initialData.variant,
+      ].filter(Boolean);
+      
+      const generatedTitle = titleParts.join(' ') || 'Untitled Card';
+
+      // Determine card type based on grading company
+      const cardType: 'graded' | 'raw' = initialData.gradingCompany ? 'graded' : 'raw';
+
+      // Pre-fill form fields
+      form.reset({
+        ...form.getValues(), // Keep userId and other defaults
+        type: cardType,
+        title: generatedTitle,
+        playerName: initialData.playerName,
+        setName: initialData.series,
+        year: initialData.year, // Keep as string
+        cardNumber: initialData.cardNumber,
+        variant: initialData.variant,
+        grader: (initialData.gradingCompany || 'PSA') as any,
+        grade: initialData.grade,
+        certNumber: initialData.certNumber,
+        sourceSlug: 'manual', // Use 'manual' since 'ai-vision' is not in schema yet
+      });
+    }
+  }, [initialData, open, form]);
 
   // Mutation for creating a new asset
   const createAssetMutation = useMutation({

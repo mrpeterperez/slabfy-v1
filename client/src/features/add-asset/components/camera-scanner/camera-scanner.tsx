@@ -14,15 +14,19 @@ interface CameraScannerProps {
   open: boolean;
   onClose: () => void;
   onScan: (value: string) => void;
+  mode?: 'scan' | 'photo'; // NEW: scan for barcode/QR, photo for AI vision
+  onPhotoCapture?: (imageData: string) => void; // NEW: Callback when photo is taken
 }
 
-export function CameraScanner({ open, onClose, onScan }: CameraScannerProps) {
+export function CameraScanner({ open, onClose, onScan, mode = 'scan', onPhotoCapture }: CameraScannerProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsPermission, setNeedsPermission] = useState(true); // Start with permission request
   const [notSupported, setNotSupported] = useState<string | null>(null);
   const [isScanningFile, setIsScanningFile] = useState(false);
+  const [videoStream, setVideoStream] = useState<MediaStream | null>(null); // NEW: For photo mode
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null); // NEW: For photo mode
   const { toast } = useToast();
 
   useEffect(() => {
@@ -57,13 +61,23 @@ export function CameraScanner({ open, onClose, onScan }: CameraScannerProps) {
         return;
       }
 
-      // First, explicitly request camera permission
-      // This triggers the browser's permission prompt
+      // Request camera permission
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'environment' } // Request back camera on mobile
       });
+
+      // PHOTO MODE: Just display video stream
+      if (mode === 'photo') {
+        setVideoStream(stream);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+        setIsScanning(true);
+        return;
+      }
       
-      // Stop the test stream immediately - we just needed permission
+      // SCAN MODE: Stop test stream and use html5-qrcode
       stream.getTracks().forEach(track => track.stop());
       
       // Now initialize scanner with permission granted
@@ -147,6 +161,13 @@ export function CameraScanner({ open, onClose, onScan }: CameraScannerProps) {
   };
 
   const stopScanning = async () => {
+    // Stop video stream if in photo mode
+    if (videoStream) {
+      videoStream.getTracks().forEach(track => track.stop());
+      setVideoStream(null);
+    }
+
+    // Stop QR scanner if active
     if (scannerRef.current && (scannerRef.current as any).isScanning) {
       try {
         await scannerRef.current.stop();
@@ -157,6 +178,62 @@ export function CameraScanner({ open, onClose, onScan }: CameraScannerProps) {
     }
     setIsScanning(false);
     scannerRef.current = null;
+  };
+
+  // NEW: Capture photo from video stream
+  const capturePhoto = () => {
+    if (!videoRef.current || !onPhotoCapture) return;
+
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      toast({ title: 'Error', description: 'Failed to capture photo', variant: 'destructive' });
+      return;
+    }
+
+    ctx.drawImage(video, 0, 0);
+    const imageData = canvas.toDataURL('image/jpeg', 0.9);
+
+    // Stop camera and close
+    stopScanning();
+    onPhotoCapture(imageData);
+    onClose();
+  };
+
+  // NEW: Handle file upload for photo mode
+  const handlePhotoUpload = async (file: File) => {
+    if (!onPhotoCapture) return;
+
+    try {
+      // Convert file to base64 data URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageData = e.target?.result as string;
+        // Stop camera and close
+        stopScanning();
+        onPhotoCapture(imageData);
+        onClose();
+      };
+      reader.onerror = () => {
+        toast({ 
+          title: 'Error', 
+          description: 'Failed to read image file', 
+          variant: 'destructive' 
+        });
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Photo upload error:', error);
+      toast({ 
+        title: 'Error', 
+        description: 'Failed to upload photo', 
+        variant: 'destructive' 
+      });
+    }
   };
 
   const handleClose = () => {
@@ -177,7 +254,9 @@ export function CameraScanner({ open, onClose, onScan }: CameraScannerProps) {
         >
           <X className="h-7 w-7" />
         </button>
-        <h1 className="text-lg font-heading font-semibold">Camera Scanner</h1>
+        <h1 className="text-lg font-heading font-semibold">
+          {mode === 'photo' ? 'Take a Photo' : 'Camera Scanner'}
+        </h1>
         <div className="w-12" />
       </div>
 
@@ -207,11 +286,19 @@ export function CameraScanner({ open, onClose, onScan }: CameraScannerProps) {
                     className="hidden"
                     onChange={(e) => {
                       const f = e.target.files?.[0];
-                      if (f) handleFileScan(f);
+                      if (f) {
+                        // Use appropriate handler based on mode
+                        if (mode === 'photo') {
+                          handlePhotoUpload(f);
+                        } else {
+                          handleFileScan(f);
+                        }
+                      }
                     }}
                   />
                   <span className="inline-flex items-center justify-center w-full h-10 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer gap-2">
-                    <ImageIcon className="w-4 h-4" /> Upload photo to scan
+                    <ImageIcon className="w-4 h-4" /> 
+                    {mode === 'photo' ? 'Upload from Gallery' : 'Upload photo to scan'}
                   </span>
                 </label>
                 <Button onClick={handleClose} variant="ghost" className="w-full">
@@ -228,13 +315,34 @@ export function CameraScanner({ open, onClose, onScan }: CameraScannerProps) {
             <div>
               <h3 className="font-semibold text-lg mb-2">Camera Permission Required</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Slabfy needs access to your camera to scan QR codes and barcodes. 
-                Your camera will only be used for scanning — no photos are saved.
+                {mode === 'photo' 
+                  ? "Slabfy needs access to your camera to capture card photos. Your camera will only be used for scanning — no photos are saved."
+                  : "Slabfy needs access to your camera to scan QR codes and barcodes. Your camera will only be used for scanning — no photos are saved."
+                }
               </p>
               <div className="flex flex-col gap-3">
                 <Button onClick={startScanning} className="w-full">
                   Grant Camera Access
                 </Button>
+                {mode === 'photo' && (
+                  <label className="w-full">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handlePhotoUpload(file);
+                      }}
+                    />
+                    <Button variant="outline" className="w-full gap-2" asChild>
+                      <span>
+                        <ImageIcon className="w-4 h-4" />
+                        Upload from Gallery
+                      </span>
+                    </Button>
+                  </label>
+                )}
                 <Button onClick={handleClose} variant="ghost" className="w-full">
                   Cancel
                 </Button>
@@ -260,11 +368,19 @@ export function CameraScanner({ open, onClose, onScan }: CameraScannerProps) {
                     className="hidden"
                     onChange={(e) => {
                       const f = e.target.files?.[0];
-                      if (f) handleFileScan(f);
+                      if (f) {
+                        // Use appropriate handler based on mode
+                        if (mode === 'photo') {
+                          handlePhotoUpload(f);
+                        } else {
+                          handleFileScan(f);
+                        }
+                      }
                     }}
                   />
                   <span className="inline-flex items-center justify-center w-full h-10 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer gap-2">
-                    <ImageIcon className="w-4 h-4" /> Upload photo to scan
+                    <ImageIcon className="w-4 h-4" /> 
+                    {mode === 'photo' ? 'Upload from Gallery' : 'Upload photo to scan'}
                   </span>
                 </label>
               </div>
@@ -272,22 +388,79 @@ export function CameraScanner({ open, onClose, onScan }: CameraScannerProps) {
           </div>
         ) : (
           <div className="w-full max-w-md space-y-4">
-            {/* Scanner Container */}
-            <div 
-              id="qr-reader" 
-              className="rounded-2xl overflow-hidden shadow-elevated"
-            />
-            
-            {/* Instructions */}
-            <div className="text-center space-y-2 pt-4">
-              <div className="flex justify-center mb-2">
-                <Camera className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <p className="text-sm font-medium">Point camera at the code</p>
-              <p className="text-xs text-muted-foreground">
-                Scans PSA QR codes and barcodes
-              </p>
-            </div>
+            {/* Video Preview for Photo Mode */}
+            {mode === 'photo' && isScanning ? (
+              <>
+                <div className="relative rounded-2xl overflow-hidden shadow-elevated bg-black">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-auto"
+                  />
+                </div>
+                
+                {/* Capture Button */}
+                <div className="flex justify-center pt-4">
+                  <Button
+                    onClick={capturePhoto}
+                    size="lg"
+                    className="rounded-full w-20 h-20 p-0"
+                  >
+                    <Camera className="w-8 h-8" />
+                  </Button>
+                </div>
+
+                {/* Upload from Gallery Button */}
+                <div className="flex justify-center pt-2">
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handlePhotoUpload(file);
+                      }}
+                    />
+                    <Button variant="outline" className="gap-2" asChild>
+                      <span>
+                        <ImageIcon className="w-4 h-4" />
+                        Upload from Gallery
+                      </span>
+                    </Button>
+                  </label>
+                </div>
+
+                {/* Instructions */}
+                <div className="text-center space-y-2 pt-2">
+                  <p className="text-sm font-medium">Position your card in the frame</p>
+                  <p className="text-xs text-muted-foreground">
+                    Or upload a photo from your device
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Scanner Container for Scan Mode */}
+                <div 
+                  id="qr-reader" 
+                  className="rounded-2xl overflow-hidden shadow-elevated"
+                />
+                
+                {/* Instructions */}
+                <div className="text-center space-y-2 pt-4">
+                  <div className="flex justify-center mb-2">
+                    <Camera className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm font-medium">Point camera at the code</p>
+                  <p className="text-xs text-muted-foreground">
+                    Scans PSA QR codes and barcodes
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
