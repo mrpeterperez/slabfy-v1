@@ -5,3 +5,4 @@
 
 export { AddAssetModalV2 } from './add-asset-modal-v2';
 export { AddConsignmentAssetModal } from './add-consignment-asset-modal';
+export { AddAssetLauncher } from './add-asset-launcher';

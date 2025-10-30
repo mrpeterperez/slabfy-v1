@@ -22,7 +22,7 @@ import { GroupedPortfolioTableV0 } from './grouped-table/grouped-table';
 import { PortfolioV0ColumnsPopover } from './columns/portfolio-v0-columns-popover';
 import { GridViewV0 } from './grid-view/grid-view-v0';
 import { NewUserPromptV0 } from './new-user-prompt/new-user-prompt-v0';
-import { AddAssetModalSimple } from '@/features/add-asset/components/add-asset-modal/add-asset-modal-simple';
+import { AddAssetLauncher } from '@/features/add-asset/components/add-asset-modal/add-asset-launcher';
 
 type ViewMode = 'table' | 'grid';
 
@@ -176,7 +176,7 @@ function PortfolioLayoutV0Inner({
           placeholder="Search by player, set, cert #..."
         />
         <NewUserPromptV0 onAddAsset={handleAddAssetClick} />
-        <AddAssetModalSimple open={addAssetOpen} onOpenChange={setAddAssetOpen} />
+        <AddAssetLauncher open={addAssetOpen} onOpenChange={setAddAssetOpen} />
       </MobilePageWrapper>
     );
   }
@@ -292,7 +292,11 @@ function PortfolioLayoutV0Inner({
                         </div>
                       </>
                     )}
-                  {/* Add Asset trigger removed from toolbar - FAB handles context actions on mobile */}
+                  {/* Desktop: Add Asset Button */}
+                  <Button onClick={handleAddAssetClick} className="hidden lg:flex">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Asset
+                  </Button>
                 </div>
               </div>
             </div>
@@ -333,8 +337,8 @@ function PortfolioLayoutV0Inner({
           </div>
         </div>
       </div>
-      {/* Add Asset Modal */}
-      <AddAssetModalSimple open={addAssetOpen} onOpenChange={setAddAssetOpen} />
+      {/* Add Asset Launcher */}
+      <AddAssetLauncher open={addAssetOpen} onOpenChange={setAddAssetOpen} />
       
       {/* Mobile Filters Drawer */}
       <MobileFiltersDrawer

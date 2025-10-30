@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, X, CheckCircle, Loader, AlertCircle, ScanLine } from 'lucide-react';
+import { Plus, X, CheckCircle, Loader, AlertCircle, ScanLine, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -54,6 +54,8 @@ interface AddAssetModalSimpleProps {
   triggerButton?: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  initialCertNumber?: string; // Support pre-filled cert number from camera scan
+  onBack?: () => void; // Support going back to launcher
 }
 
 // PSA scan helpers
@@ -106,7 +108,7 @@ const mapPSADataToAsset = (psa: any) => ({
   serialMax: psa.serialMax,
 });
 
-export const AddAssetModalSimple = ({ triggerButton, open: controlledOpen, onOpenChange }: AddAssetModalSimpleProps) => {
+export const AddAssetModalSimple = ({ triggerButton, open: controlledOpen, onOpenChange, initialCertNumber, onBack }: AddAssetModalSimpleProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = (val: boolean) => {
@@ -125,6 +127,17 @@ export const AddAssetModalSimple = ({ triggerButton, open: controlledOpen, onOpe
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
 
   useEffect(() => { if (open) setTimeout(()=>inputRef.current?.focus(), 80); }, [open]);
+
+  // Auto-process initial cert number from camera scan
+  useEffect(() => {
+    if (open && initialCertNumber && certs.length === 0 && input === '') {
+      setInput(initialCertNumber);
+      // Auto-trigger scan after modal is fully open
+      setTimeout(() => {
+        addCert();
+      }, 300);
+    }
+  }, [open, initialCertNumber]);
 
   const addCert = async () => {
     if (!input.trim()) return; 
@@ -415,28 +428,68 @@ export const AddAssetModalSimple = ({ triggerButton, open: controlledOpen, onOpe
       {triggerButton && <div onClick={()=>setOpen(true)}>{triggerButton}</div>}
   {open && !manualDialogOpen && (
         <div className="fixed top-0 left-0 right-0 bottom-0 w-full h-full z-[99998] bg-background text-foreground" role="dialog" aria-modal="true">
-          <div className="relative flex items-center justify-between p-4 sm:p-6 border-b border-border">
-            <button onClick={()=>setOpen(false)} className="p-2 hover:bg-muted rounded-lg transition-colors">
-              <X className="w-5 h-5 text-muted-foreground" />
-            </button>
-            <h2 className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-2xl font-heading font-semibold">Add Assets</h2>
-            {/* Top-right CTA */}
-            <div className="flex items-center gap-2">
-              <Button
-                disabled={!anySuccess || certs.some(c=>c.status==='pending')}
-                onClick={handleAddAssets}
-                size="lg"
+          {/* Mobile Header */}
+          <div className="lg:hidden">
+            <div className="flex items-center justify-between p-4">
+              <button
+                onClick={() => {
+                  if (onBack) {
+                    onBack();
+                  } else {
+                    setOpen(false);
+                  }
+                }}
+                className="flex items-center justify-center min-w-[48px] min-h-[48px] -ml-3"
+                aria-label="Back"
               >
-                {`Add ${certs.filter(c=>c.status==='success').length} Asset${certs.filter(c=>c.status==='success').length!==1?'s':''}`}
-              </Button>
+                <ChevronLeft className="h-7 w-7" />
+              </button>
+              <button
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-center min-w-[48px] min-h-[48px] -mr-3"
+                aria-label="Close"
+              >
+                <X className="h-7 w-7" />
+              </button>
+            </div>
+            <div className="px-4 pb-4">
+              <h1 className="text-[34px] font-heading font-bold leading-none">
+                Scan PSA Slabs
+              </h1>
             </div>
           </div>
 
-          <div className="px-4 sm:px-6 py-6 overflow-y-auto h-[calc(100vh-80px)] sm:h-[calc(100vh-88px)]">
+          {/* Desktop Header */}
+          <div className="hidden lg:flex relative items-center justify-center p-4 sm:p-6 border-b border-border">
+            <button 
+              onClick={() => {
+                if (onBack) {
+                  onBack();
+                } else {
+                  setOpen(false);
+                }
+              }}
+              className="absolute left-4 sm:left-6 p-2 hover:bg-muted rounded-lg transition-colors"
+              aria-label="Back"
+            >
+              <ChevronLeft className="w-5 h-5 text-muted-foreground" />
+            </button>
+            <h2 className="text-2xl font-heading font-semibold">Scan PSA Slabs</h2>
+            <button 
+              onClick={() => setOpen(false)}
+              className="absolute right-4 sm:right-6 p-2 hover:bg-muted rounded-lg transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </div>
+
+          <div className="px-4 sm:px-6 py-6 overflow-y-auto h-[calc(100vh-160px)] lg:h-[calc(100vh-88px)]">
             <div className="max-w-6xl mx-auto">
             {certs.length === 0 ? (
-              <div className="w-full h-full flex flex-col items-center justify-center text-center gap-8 pt-6">
-                <div className="space-y-5">
+              <div className="w-full h-full flex flex-col items-center justify-center text-center gap-8 lg:pt-6">
+                {/* Desktop only - icon and description */}
+                <div className="hidden lg:block space-y-5">
                   <div className="p-6 border-2 border-dashed border-border rounded-lg inline-block">
                     <ScanLine className="h-14 w-14 text-muted-foreground" />
                   </div>
@@ -456,18 +509,6 @@ export const AddAssetModalSimple = ({ triggerButton, open: controlledOpen, onOpe
                   />
                   <Button disabled={!input.trim()} onClick={addCert} className="rounded-l-none px-5 h-12"><Plus className="w-5 h-5"/></Button>
                 </div>
-                
-                {/* Manual Entry Link */}
-                <button
-                  onClick={() => {
-                    // Open manual dialog and close parent so user doesn't have to close two dialogs
-                    setManualDialogOpen(true);
-                    setOpen(false);
-                  }}
-                  className="text-sm text-primary hover:text-primary/80 underline underline-offset-4 transition-colors"
-                >
-                  Enter Asset Manually
-                </button>
               </div>
             ) : (
               <div className="space-y-6">
