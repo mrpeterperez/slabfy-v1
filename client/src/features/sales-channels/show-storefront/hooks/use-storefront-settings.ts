@@ -11,6 +11,7 @@ import type {
   UpdateStorefrontSettings,
 } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { TIER_2_SEMI_STATIC } from "@/lib/cache-tiers";
 
 // Query keys for caching
 export const storefrontKeys = {
@@ -24,8 +25,8 @@ export function useStorefrontSettings() {
   return useQuery({
     queryKey: storefrontKeys.settings(),
     queryFn: () => storefrontApi.getSettings(),
-    staleTime: 5 * 60 * 1000, // 5 minutes - settings rarely change
-    // Cache settings handled by global QueryClient defaults
+    placeholderData: (previousData) => previousData,
+    ...TIER_2_SEMI_STATIC, // Settings rarely change
   });
 }
 
@@ -83,7 +84,7 @@ export function useEventStorefrontSettings(eventId: string) {
     queryKey: storefrontKeys.eventSettings(eventId),
     queryFn: () => storefrontApi.getEventSettings(eventId),
     enabled: !!eventId,
-    staleTime: 5 * 60 * 1000, // 5 minutes - settings rarely change
-    // Cache settings handled by global QueryClient defaults
+    placeholderData: (previousData) => previousData,
+    ...TIER_2_SEMI_STATIC, // Settings rarely change
   });
 }

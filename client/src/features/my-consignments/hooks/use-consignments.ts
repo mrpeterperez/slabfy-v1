@@ -24,6 +24,8 @@ import {
 import { getConsignmentStats, getConsignmentSummaries, type ConsignmentSummary, type ConsignmentStatusCounts } from "../api/consignment-api";
 import { InsertConsignment, UpdateConsignment, InsertConsignor, UpdateConsignor, InsertContact } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { queryKeys } from "@/lib/query-keys";
+import { TIER_3_DYNAMIC } from "@/lib/cache-tiers";
 
 /**
  * Hook to get all consignments for the current user with optional archived or status filter
@@ -32,11 +34,13 @@ export const useConsignments = (archived?: boolean, status?: string) => {
   const { user, loading: authLoading } = useAuth();
   
   return useQuery({
-    queryKey: ["/api/consignments", user?.id, { archived, status }],
+    queryKey: status 
+      ? ['consignments', { archived, status, userId: user?.id }] as const
+      : queryKeys.consignments.all(archived),
     queryFn: () => getConsignments(user!.id, archived, status),
     enabled: !!user?.id && !authLoading,
-    staleTime: 60_000, // 1 minute - balance between freshness and performance
-    // Cache settings handled by global QueryClient defaults
+    placeholderData: (previousData) => previousData,
+    ...TIER_3_DYNAMIC,
   });
 };
 
@@ -45,11 +49,11 @@ export const useConsignments = (archived?: boolean, status?: string) => {
  */
 export const useConsignment = (consignmentId: string) => {
   return useQuery({
-    queryKey: ["/api/consignments", consignmentId],
+    queryKey: queryKeys.consignments.detail(consignmentId),
     queryFn: () => getConsignment(consignmentId),
     enabled: !!consignmentId,
-    staleTime: 60_000, // 1 minute - balance between freshness and performance
-    // Cache settings handled by global QueryClient defaults
+    placeholderData: (previousData) => previousData,
+    ...TIER_3_DYNAMIC,
   });
 };
 

@@ -165,21 +165,67 @@ export const getQueryFn: <T>(options: {
     return await res.json();
   };
 
+// 🔥 TIERED CACHE STRATEGY - PRODUCTION QUALITY
+// Different data types need different cache strategies based on update frequency
+//
+// GLOBAL DEFAULTS (for queries without explicit settings):
+// - Semi-static data like pricing, collections, contacts
+// - staleTime: How long data is considered fresh (no refetch needed)
+// - gcTime: How long unused data stays in memory cache
+// - refetchOnMount/WindowFocus/Reconnect: Conservative defaults to prevent API spam
+//
+// TIER SYSTEM (override in individual hooks):
+// 1. STATIC DATA (30min stale): User profile, settings, preferences
+// 2. SEMI-STATIC DATA (10min stale): Pricing, collections, contacts, events
+// 3. DYNAMIC DATA (1min stale): Buying desk assets, consignments, transactions
+// 4. REAL-TIME DATA (0 stale): Live market data, current sessions
+//
+// Pricing-specific strategy:
+// - Only changes on: (1) Asset creation, (2) Manual refresh
+// - NO automatic scheduled refresh based on liquidity
+// - Cache aggressively to prevent Countdown API spam
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
-      refetchOnWindowFocus: false, // Reduce aggressive refetching
-      refetchOnReconnect: false, // Don't refetch on reconnect
-      refetchOnMount: false, // Don't refetch on mount if data exists
-      staleTime: 15 * 60 * 1000, // 15 minutes fresh (increased from 10)
-      gcTime: 2 * 60 * 60 * 1000, // Keep in cache for 2 hours (increased from 1)
-      retry: 1, // Allow one retry for network issues
-      structuralSharing: true, // Optimize re-renders
+      
+      // Refetch behavior (conservative to prevent API spam)
+      refetchInterval: false, // Never auto-refetch on timer (override per-query if needed)
+      refetchOnWindowFocus: false, // Don't spam API when user switches tabs
+      refetchOnReconnect: false, // Don't spam API on network reconnect
+      refetchOnMount: false, // Don't refetch if data exists and is still fresh
+      
+      // Cache duration (default to Tier 2: Semi-static)
+      staleTime: 10 * 60 * 1000, // 10 minutes fresh - good for most data
+      gcTime: 30 * 60 * 1000, // 30 minutes in memory cache
+      
+      // Error handling & performance
+      retry: (failureCount, error: any) => {
+        // Don't retry 4xx errors (client errors - won't fix themselves)
+        if (error?.status >= 400 && error?.status < 500) {
+          // Exception: Retry 408 (Request Timeout) and 429 (Too Many Requests)
+          if (error.status === 408 || error.status === 429) return failureCount < 3;
+          return false;
+        }
+        
+        // Retry 5xx errors (server errors - might be transient)
+        if (error?.status >= 500) return failureCount < 3;
+        
+        // Retry network errors (no status code)
+        if (!error?.status) return failureCount < 3;
+        
+        return false;
+      },
+      retryDelay: (attemptIndex) => {
+        // Exponential backoff with jitter to prevent thundering herd
+        const baseDelay = Math.min(1000 * 2 ** attemptIndex, 30000);
+        const jitter = Math.random() * 1000;
+        return baseDelay + jitter;
+      },
+      structuralSharing: true, // Optimize re-renders by preserving object references
     },
     mutations: {
-      retry: false,
+      retry: false, // Don't retry mutations (could cause duplicates)
     },
   },
 });

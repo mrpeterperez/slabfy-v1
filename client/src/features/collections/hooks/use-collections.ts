@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/auth-provider';
+import { queryKeys } from '@/lib/query-keys';
+import { TIER_3_DYNAMIC } from '@/lib/cache-tiers';
 import { 
   getCollections, 
   getCollectionsSummary, 
@@ -26,14 +28,14 @@ import { type InsertCollection, type UpdateCollection, type InsertCollectionAsse
 export const useCollections = (archived?: boolean) => {
   const { user, loading: authLoading } = useAuth();
   return useQuery({
-    queryKey: ["/api/collections", archived],
+    queryKey: archived 
+      ? ['collections', { archived }] as const
+      : queryKeys.collections.all,
     queryFn: () => getCollections(archived),
     enabled: !!user && !authLoading,
-    // If the API returns null/undefined for no results, keep UI stable
-    placeholderData: [] as any,
+    placeholderData: (previousData) => previousData || ([] as any),
     select: (data) => Array.isArray(data) ? data : [],
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    ...TIER_3_DYNAMIC,
   });
 };
 
@@ -43,18 +45,16 @@ export const useCollections = (archived?: boolean) => {
 export const useCollectionsSummary = () => {
   const { user, loading: authLoading } = useAuth();
   return useQuery({
-    queryKey: ["/api/collections/summary"],
+    queryKey: queryKeys.collections.summary(),
     queryFn: getCollectionsSummary,
     enabled: !!user && !authLoading,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    // Instant zeros while fetching
-    placeholderData: {
+    placeholderData: (previousData) => previousData || {
       totalCollections: 0,
       totalAssets: 0,
       favoriteCollections: 0,
       publicCollections: 0,
     },
+    ...TIER_3_DYNAMIC,
   });
 };
 
@@ -63,14 +63,11 @@ export const useCollectionsSummary = () => {
  */
 export const useCollection = (collectionId: string) => {
   return useQuery({
-    queryKey: ["/api/collections", collectionId],
+    queryKey: queryKeys.collections.detail(collectionId),
     queryFn: () => getCollection(collectionId),
     enabled: !!collectionId,
-  staleTime: 15 * 60 * 1000, // 15 minutes
-  gcTime: 60 * 60 * 1000,
-  refetchOnMount: false,
-  refetchOnReconnect: false,
-  refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
+    ...TIER_3_DYNAMIC,
   });
 };
 

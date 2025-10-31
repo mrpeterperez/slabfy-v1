@@ -24,6 +24,8 @@
   import { OwnershipBadge, getOwnershipType } from "@/components/ui/ownership-badge";
   import { PortfolioSparkline } from "@/components/ui/metrics/sparkline/portfolio-sparkline";
   import { useAuth } from "@/components/auth-provider";
+  import { PRICING_CACHE } from '@/lib/cache-tiers';
+  import { queryKeys } from '@/lib/query-keys';
   import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
   import { Button } from "@/components/ui/button";
   import { Input } from "@/components/ui/input";
@@ -91,11 +93,11 @@
   }) => {
     const { user, loading: authLoading } = useAuth();
     
-    const { data: pricingData, isLoading } = useQuery<PricingData>({
-      queryKey: [`/api/pricing/${assetId}`],
+    const { data: pricingData, isLoading, isFetching } = useQuery<PricingData>({
+      queryKey: queryKeys.pricing.single(assetId),
       enabled: !!assetId && !authLoading,
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
+      placeholderData: (previousData) => previousData,
+      ...PRICING_CACHE,
     });
 
     if (isLoading) {

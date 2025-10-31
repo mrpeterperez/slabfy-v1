@@ -1,5 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { PRICING_CACHE } from '@/lib/cache-tiers';
+import { queryKeys } from '@/lib/query-keys';
 
 interface RealTimePricingData {
   averagePrice: number;
@@ -18,8 +20,9 @@ interface CardLiquidityRatingProps {
 }
 
 const CardLiquidityRating: React.FC<CardLiquidityRatingProps> = ({ assetId }) => {
-  const { data: pricingData, isLoading, error } = useQuery<RealTimePricingData>({
-    queryKey: ['pricing', assetId],
+  // 🔥 PRODUCTION QUALITY: Type-safe keys + tiered cache + stale-while-revalidate
+  const { data: pricingData, isLoading, isFetching, error } = useQuery<RealTimePricingData>({
+    queryKey: queryKeys.pricing.single(assetId),
     queryFn: async () => {
       const response = await fetch(`/api/pricing/${assetId}`);
       if (!response.ok) {
@@ -27,8 +30,8 @@ const CardLiquidityRating: React.FC<CardLiquidityRatingProps> = ({ assetId }) =>
       }
       return response.json();
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
+    ...PRICING_CACHE,
   });
 
   // Liquidity display helpers

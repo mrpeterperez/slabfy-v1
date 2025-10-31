@@ -158,7 +158,7 @@ function MyPortfolioWithActions() {
 }
 const ChatsPage = lazy(() => import("@/pages/chats.tsx"));
 const AIAgentPage = lazy(() => import("@/pages/ai-agent"));
-const TestChartPage = lazy(() => import("@/pages/test-chart-page"));
+// const TestChartPage = lazy(() => import("@/pages/test-chart-page")); // Commented out - file doesn't exist
 const StarBorderDemoPage = lazy(() => import("@/pages/star-border-demo"));
 
 // Feature components - lazy loaded
@@ -484,11 +484,11 @@ function App() {
           </ProtectedRoute>
         </Route>
         
-        <Route path="/test-chart">
+        {/* <Route path="/test-chart">
           <ProtectedRoute>
             <TestChartPage />
           </ProtectedRoute>
-        </Route>
+        </Route> */}
 
         <Route path="/star-border-demo">
           <ProtectedRoute>

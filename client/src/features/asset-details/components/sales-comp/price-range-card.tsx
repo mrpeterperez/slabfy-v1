@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiRequest } from '@/lib/queryClient';
+import { PRICING_CACHE } from '@/lib/cache-tiers';
+import { queryKeys } from '@/lib/query-keys';
 
 interface PricingData {
   highestPrice: number;
@@ -14,14 +16,14 @@ interface PriceRangeCardProps {
 }
 
 export function PriceRangeCard({ assetId }: PriceRangeCardProps) {
-  const { data: pricingData, isLoading } = useQuery<PricingData>({
-    queryKey: ['pricing', assetId],
+  const { data: pricingData, isLoading, isFetching } = useQuery<PricingData>({
+    queryKey: queryKeys.pricing.single(assetId),
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/pricing/${assetId}`);
       return response.json();
     },
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
+    ...PRICING_CACHE,
   });
 
   const formatCurrency = (amount: number) => {

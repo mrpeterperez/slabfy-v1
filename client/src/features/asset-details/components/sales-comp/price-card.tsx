@@ -1,6 +1,8 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { PRICING_CACHE } from '@/lib/cache-tiers';
+import { queryKeys } from '@/lib/query-keys';
 
 interface RealTimePricingData {
   averagePrice: number;
@@ -19,14 +21,15 @@ interface CardSalesAvgProps {
 }
 
 const CardSalesAvg: React.FC<CardSalesAvgProps> = ({ assetId }) => {
-  const { data: pricingData, isLoading, error } = useQuery<RealTimePricingData>({
-    queryKey: ['pricing', assetId],
+  // 🔥 PRODUCTION QUALITY: Type-safe keys + tiered cache + stale-while-revalidate
+  const { data: pricingData, isLoading, isFetching, error } = useQuery<RealTimePricingData>({
+    queryKey: queryKeys.pricing.single(assetId),
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/pricing/${assetId}`);
       return response.json();
     },
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
+    ...PRICING_CACHE,
   });
 
 

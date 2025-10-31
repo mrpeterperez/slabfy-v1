@@ -9,6 +9,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Asset } from "@shared/schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { queryKeys } from "@/lib/query-keys";
+import { PRICING_CACHE } from "@/lib/cache-tiers";
 
 interface RealTimePricingData {
   averagePrice: number;
@@ -44,18 +46,16 @@ export const ReviewSaleCard: React.FC<ReviewSaleCardProps> = ({
   const assetsOwned = 1 + relatedAssets.length;
 
   // Fetch real-time pricing data
-  const { data: pricingData, isLoading } = useQuery<RealTimePricingData>({
-    queryKey: ["pricing", asset.id],
+  const { data: pricingData, isLoading, isFetching } = useQuery<RealTimePricingData>({
+    queryKey: queryKeys.pricing.single(asset.id),
     queryFn: async () => {
       const response = await fetch(`/api/pricing/${asset.id}`);
       if (!response.ok) throw new Error("Failed to fetch pricing data");
       return response.json();
     },
     enabled: !!asset?.id,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    placeholderData: (previousData) => previousData,
+    ...PRICING_CACHE,
   });
 
   // Set default sell price when pricing data loads

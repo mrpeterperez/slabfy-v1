@@ -7,6 +7,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/auth-provider';
+import { queryKeys } from '@/lib/query-keys';
+import { TIER_3_DYNAMIC } from '@/lib/cache-tiers';
 import { 
   getContacts, 
   getContactsSummary, 
@@ -29,12 +31,10 @@ import { type InsertContact, type UpdateContact } from '@shared/schema';
  */
 export const useContacts = (archived?: boolean) => {
   return useQuery({
-    queryKey: ["/api/contacts", { archived }],
+    queryKey: queryKeys.contacts.all(archived),
     queryFn: () => getContacts(archived),
-    // Moderate caching: refresh when user revisits
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 15 * 60 * 1000, // keep cached for 15 minutes
-    // Cache settings handled by global QueryClient defaults
+    placeholderData: (previousData) => previousData,
+    ...TIER_3_DYNAMIC,
   });
 };
 
@@ -43,18 +43,15 @@ export const useContacts = (archived?: boolean) => {
  */
 export const useContactsSummary = (archived?: boolean) => {
   return useQuery({
-    queryKey: ["/api/contacts/summary", { archived }],
+    queryKey: queryKeys.contacts.summary(archived),
     queryFn: () => getContactsSummary(archived),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 15 * 60 * 1000,
-    // Cache settings handled by global QueryClient defaults
-    // Instant zeros while fetching
-    placeholderData: {
+    placeholderData: (previousData) => previousData || {
       totalContacts: 0,
       recentContacts: 0,
       contactsWithEmail: 0,
       contactsWithPhone: 0,
     },
+    ...TIER_3_DYNAMIC,
   });
 };
 
@@ -63,17 +60,14 @@ export const useContactsSummary = (archived?: boolean) => {
  */
 export const useContact = (contactId: string) => {
   return useQuery({
-    queryKey: ["/api/contacts", contactId],
+    queryKey: queryKeys.contacts.detail(contactId),
     queryFn: async () => {
       const c = await getContact(contactId);
       return c;
     },
     enabled: !!contactId,
-    staleTime: 15 * 60 * 1000, // 15 minutes
-    gcTime: 60 * 60 * 1000,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
+    ...TIER_3_DYNAMIC,
   });
 };
 

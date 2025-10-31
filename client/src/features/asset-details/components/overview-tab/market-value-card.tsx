@@ -13,6 +13,8 @@ import ConfidenceMeter from "./confidence-rating/confidence-meter";
 import { LiquidityIndicator } from "@/components/ui/metrics/liquidity-indicator";
 import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { useAuth } from "@/components/auth-provider";
+import { PRICING_CACHE } from "@/lib/cache-tiers";
+import { queryKeys } from "@/lib/query-keys";
 
 interface RealTimePricingData {
   averagePrice: number;
@@ -41,18 +43,17 @@ const MarketValueCard = ({
   const assetsOwned = 1 + relatedAssets.length;
 
   // Fetch real-time pricing data from pricing API
-  const { data: pricingData, isLoading } = useQuery<RealTimePricingData>({
-    queryKey: ["pricing", asset.id],
+  // 🔥 PRODUCTION QUALITY: Type-safe keys + tiered cache + stale-while-revalidate
+  const { data: pricingData, isLoading, isFetching } = useQuery<RealTimePricingData>({
+    queryKey: queryKeys.pricing.single(asset.id),
     queryFn: async () => {
       const response = await fetch(`/api/pricing/${asset.id}`);
       if (!response.ok) throw new Error("Failed to fetch pricing data");
       return response.json();
     },
     enabled: !!asset.id && !authLoading,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    placeholderData: (previousData) => previousData, // Stale-while-revalidate
+    ...PRICING_CACHE,
   });
 
   // Calculate total market value based on assets owned

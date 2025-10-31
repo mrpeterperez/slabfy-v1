@@ -7,8 +7,9 @@
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Asset } from "@shared/schema";
-import { useVariations } from "../variations/variations-hook";
 import { useAuth } from "@/components/auth-provider";
+import { PRICING_CACHE } from '@/lib/cache-tiers';
+import { queryKeys } from '@/lib/query-keys';
 
 interface PricingData {
   averagePrice: number;
@@ -23,23 +24,18 @@ interface AverageCostCardProps {
 
 export const AverageCostCard: React.FC<AverageCostCardProps> = ({ asset, relatedAssets = [] }) => {
   const { user, loading: authLoading } = useAuth();
-  
-  // Get variations of the same card
-  const { variations } = useVariations({ baseAsset: asset });
 
   // Fetch real-time pricing data from pricing API
-  const { data: pricingData, isLoading } = useQuery<PricingData>({
-    queryKey: ["pricing", asset.id],
+  const { data: pricingData, isLoading, isFetching } = useQuery<PricingData>({
+    queryKey: queryKeys.pricing.single(asset.id),
     queryFn: async () => {
       const response = await fetch(`/api/pricing/${asset.id}`);
       if (!response.ok) throw new Error("Failed to fetch pricing data");
       return response.json();
     },
     enabled: !!asset.id && !authLoading,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    placeholderData: (previousData) => previousData,
+    ...PRICING_CACHE,
   });
 
   // Calculate metrics from real data

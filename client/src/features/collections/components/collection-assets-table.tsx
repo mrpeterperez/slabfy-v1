@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-keys';
+import { PRICING_CACHE } from '@/lib/cache-tiers';
 import { Badge } from '@/components/ui/badge';
 import { OwnershipBadge, getOwnershipType } from '@/components/ui/ownership-badge';
 import { Button } from '@/components/ui/button';
@@ -328,9 +330,15 @@ function CollectionAssetRow({
 }) {
   // Fetch pricing data for this asset
   const { data: pricingData, isLoading: isPricingLoading } = useQuery<PricingData>({
-    queryKey: [`/api/pricing/${asset.globalAssetId}`],
+    queryKey: queryKeys.pricing.single(asset.globalAssetId!),
+    queryFn: async () => {
+      const response = await fetch(`/api/pricing/${asset.globalAssetId}`);
+      if (!response.ok) throw new Error('Pricing fetch failed');
+      return response.json();
+    },
     enabled: !!asset.globalAssetId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    placeholderData: (previousData) => previousData,
+    ...PRICING_CACHE,
   });
 
   // Get asset display data
