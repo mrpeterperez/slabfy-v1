@@ -41,6 +41,16 @@ export async function refreshCardSalesById(assetId: string, useAIFiltering = tru
 
   const cardName = card.title || `${card.player} ${card.year} ${card.set} #${card.number} ${card.grade}`;
   console.log(`🔄 Refreshing sales for: ${cardName}`);
+  console.log(`📋 Card details:`, {
+    player: card.player,
+    year: card.year,
+    set: card.set,
+    number: card.number,
+    grade: card.grade,
+    grader: card.grader,
+    type: card.cardId, // Using cardId field since type isn't in Card interface
+    variant: card.variant
+  });
 
   // Step 2: Build search terms
   const searchTerms = buildSearchTerms(card);
