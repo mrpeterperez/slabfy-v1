@@ -222,6 +222,10 @@ export function DualScanCamera({ open, onClose, onAddCards, onProcessCard }: Dua
   };
 
   const handleAddCards = () => {
+    console.log('🎯 DualScanCamera - handleAddCards called');
+    console.log('📦 Captured cards:', capturedCards);
+    console.log('📊 Card statuses:', capturedCards.map(c => ({ id: c.id, status: c.status, hasResult: !!c.result })));
+    
     // Pass all captured cards to parent
     onAddCards(capturedCards);
     // Clear draft from sessionStorage

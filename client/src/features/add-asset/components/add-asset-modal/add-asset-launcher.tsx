@@ -109,6 +109,13 @@ export function AddAssetLauncher({
 
   const handleDualScanAddCards = async (cards: QueuedCard[]) => {
     console.log('🎯 handleDualScanAddCards called with cards:', cards);
+    console.log('🔍 Card details:', cards.map(c => ({
+      id: c.id,
+      status: c.status,
+      hasResult: !!c.result,
+      confidence: c.result?.confidence,
+      player: c.result?.fields.playerName
+    })));
     
     // Filter successful cards only
     const successfulCards = cards.filter(c => c.status === 'success' && c.result);
