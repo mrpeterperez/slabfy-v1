@@ -291,4 +291,14 @@ html, body, #root {
   }
 
   /* Add any other custom utility classes here */
+
+  /* Camera shutter flash animation */
+  @keyframes flash {
+    0% { opacity: 0.8; }
+    100% { opacity: 0; }
+  }
+
+  .animate-flash {
+    animation: flash 100ms ease-out;
+  }
 }

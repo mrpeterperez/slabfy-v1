@@ -31,12 +31,41 @@ export function DualScanCamera({ open, onClose, onAddCards, onProcessCard }: Dua
   const [error, setError] = useState<string | null>(null);
   const [capturedCards, setCapturedCards] = useState<QueuedCard[]>([]);
   const [isQueueExpanded, setIsQueueExpanded] = useState(false);
+  const [showFlash, setShowFlash] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Load draft scans from sessionStorage
+  useEffect(() => {
+    if (open) {
+      const draft = sessionStorage.getItem('camera-scan-draft');
+      if (draft) {
+        try {
+          const savedCards = JSON.parse(draft);
+          if (Array.isArray(savedCards) && savedCards.length > 0) {
+            setCapturedCards(savedCards);
+            toast({
+              title: `${savedCards.length} scanned card${savedCards.length > 1 ? 's' : ''} recovered`,
+              description: 'Continue scanning or click Add to save them',
+            });
+          }
+        } catch (e) {
+          console.warn('Failed to load draft scans:', e);
+        }
+      }
+    }
+  }, [open]);
+
+  // Save draft to sessionStorage
+  useEffect(() => {
+    if (capturedCards.length > 0) {
+      sessionStorage.setItem('camera-scan-draft', JSON.stringify(capturedCards));
+    }
+  }, [capturedCards]);
 
   // Start camera when modal opens
   useEffect(() => {
@@ -101,6 +130,10 @@ export function DualScanCamera({ open, onClose, onAddCards, onProcessCard }: Dua
 
   const capturePhoto = async () => {
     if (!videoRef.current || isCompressing) return;
+
+    // Shutter flash effect
+    setShowFlash(true);
+    setTimeout(() => setShowFlash(false), 100);
 
     const video = videoRef.current;
     const canvas = document.createElement('canvas');
@@ -191,6 +224,8 @@ export function DualScanCamera({ open, onClose, onAddCards, onProcessCard }: Dua
   const handleAddCards = () => {
     // Pass all captured cards to parent
     onAddCards(capturedCards);
+    // Clear draft from sessionStorage
+    sessionStorage.removeItem('camera-scan-draft');
     handleClose();
   };
 
@@ -313,6 +348,11 @@ export function DualScanCamera({ open, onClose, onAddCards, onProcessCard }: Dua
 
   return (
     <div className="fixed inset-0 z-[99999] bg-black">
+      {/* Flash overlay for shutter effect */}
+      {showFlash && (
+        <div className="absolute inset-0 z-[100000] bg-white animate-flash pointer-events-none" />
+      )}
+
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -384,6 +424,28 @@ export function DualScanCamera({ open, onClose, onAddCards, onProcessCard }: Dua
             <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-lg" />
           </div>
         </div>
+
+        {/* Preview Thumbnails */}
+        {(frontImage || backImage) && (
+          <div className="absolute bottom-32 left-4 flex gap-2 z-20 pointer-events-none">
+            {frontImage && (
+              <div className="relative w-16 h-20 rounded border-2 border-white/50 overflow-hidden shadow-lg">
+                <img src={frontImage} alt="Front preview" className="w-full h-full object-cover" />
+                <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] text-center py-0.5">
+                  Front
+                </div>
+              </div>
+            )}
+            {backImage && (
+              <div className="relative w-16 h-20 rounded border-2 border-white/50 overflow-hidden shadow-lg">
+                <img src={backImage} alt="Back preview" className="w-full h-full object-cover" />
+                <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] text-center py-0.5">
+                  Back
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Error State */}
         {error && (
