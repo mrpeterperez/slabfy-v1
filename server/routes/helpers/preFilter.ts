@@ -72,6 +72,7 @@ export function preFilterSales(sales: EbaySale[], targetCard: string): EbaySale[
 
     // --- Grader + grade ---
     if (target.grader && target.grade) {
+      // Target card IS graded - match specific grader and grade
       const graderWord = target.grader.toLowerCase();
       const graderOk = new RegExp(`\\b${graderWord}\\b`).test(n);
 
@@ -107,9 +108,10 @@ export function preFilterSales(sales: EbaySale[], targetCard: string): EbaySale[
       // Reject if other graders mentioned
       const otherGraders = ["psa","bgs","sgc","cgc"].filter(g => g !== graderWord);
       if (otherGraders.some(g => new RegExp(`\\b${g}\\b`).test(n))) return false;
-
-      // Optional: drop obvious graded lots
-      // if (/\b(lot|lots|bundle|set of|set)\b/i.test(n)) return false;
+    } else {
+      // Target card is RAW (no grader) - reject ANY graded cards
+      const hasGrader = /\b(psa|bgs|sgc|cgc)\b/i.test(n);
+      if (hasGrader) return false;
     }
 
     // --- Card number (don’t confuse with serials) ---
