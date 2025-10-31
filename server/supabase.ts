@@ -112,9 +112,9 @@ export async function uploadAssetImage(file: Buffer, userId: string, fileName: s
     // Create unique filename: userId_timestamp_random.extension
     const uniqueFileName = `${userId}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExtension}`;
     
-    // Upload to Supabase storage
+    // Upload to Supabase storage (public-assets bucket)
     const { data, error } = await supabase.storage
-      .from('asset-images')
+      .from('public-assets')
       .upload(uniqueFileName, file, {
         contentType: `image/${fileExtension}`,
         cacheControl: '3600',
@@ -128,7 +128,7 @@ export async function uploadAssetImage(file: Buffer, userId: string, fileName: s
 
     // Get public URL
     const { data: urlData } = supabase.storage
-      .from('asset-images')
+      .from('public-assets')
       .getPublicUrl(data.path);
 
     return urlData.publicUrl;
@@ -153,7 +153,7 @@ export async function deleteAssetImage(imageUrl: string): Promise<boolean> {
     }
 
     const { error } = await supabase.storage
-      .from('asset-images')
+      .from('public-assets')
       .remove([fileName]);
 
     if (error) {

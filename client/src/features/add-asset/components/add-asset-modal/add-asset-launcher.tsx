@@ -214,10 +214,14 @@ export function AddAssetLauncher({
           if (frontUrl) assetImages.push(frontUrl);
           if (backUrl) assetImages.push(backUrl);
 
+          // Determine if card is graded based on presence of grade
+          const isGraded = !!card.result!.fields.grade;
+          const cardType = isGraded ? 'graded' : 'raw';
+          
           return {
-            type: 'graded',
+            type: cardType,
             title: `${card.result!.fields.year || ''} ${card.result!.fields.series || card.result!.fields.brand || ''} ${card.result!.fields.playerName || ''} #${card.result!.fields.cardNumber || ''} ${card.result!.fields.grade || ''}`.trim(),
-            grader: card.result!.fields.gradingCompany || 'PSA',
+            grader: isGraded ? (card.result!.fields.gradingCompany || 'PSA') : null,
             playerName: card.result!.fields.playerName,
             setName: card.result!.fields.series || card.result!.fields.brand,
             year: card.result!.fields.year,

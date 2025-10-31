@@ -47,8 +47,15 @@ export async function refreshCardSalesById(assetId: string, useAIFiltering = tru
   console.log(`🎯 Generated search terms: main="${searchTerms.main}", backup=[${searchTerms.backup.join(', ')}]`);
 
   // Step 3: Search eBay for sales with pre-filtering  
-  // Create consistent PSA-formatted target card for filtering
-  const targetCardForFiltering = `${card.player} ${card.year} ${card.set} #${card.number} PSA ${card.grade}${card.variant ? ` ${card.variant}` : ''}`;
+  // Build target card string for filtering - handle both graded and raw cards
+  let targetCardForFiltering = `${card.player} ${card.year} ${card.set} #${card.number}`;
+  if (card.grader && card.grade) {
+    targetCardForFiltering += ` ${card.grader} ${card.grade}`;
+  }
+  if (card.variant) {
+    targetCardForFiltering += ` ${card.variant}`;
+  }
+  
   const searchResult = await searchEbay(searchTerms, targetCardForFiltering);
   const rawCount = searchResult.sales.length;
 
@@ -83,7 +90,15 @@ export async function refreshCardSalesById(assetId: string, useAIFiltering = tru
   if (useAIFiltering && aiEnvOk && filteredSales.length > 0) {
     try {
       console.log('🤖 Invoking GROQ AI filtering edge function (groq-sales-filter)');
-      const targetCard = `${card.year} ${card.set} ${card.player} #${card.number} PSA ${card.grade}${card.variant ? ` ${card.variant}` : ''}`;
+      // Build target card for AI - handle both graded and raw cards
+      let targetCard = `${card.year} ${card.set} ${card.player} #${card.number}`;
+      if (card.grader && card.grade) {
+        targetCard += ` ${card.grader} ${card.grade}`;
+      }
+      if (card.variant) {
+        targetCard += ` ${card.variant}`;
+      }
+      
       const { data, error } = await supabaseEdge.functions.invoke('groq-sales-filter', {
         body: {
           targetCard,
