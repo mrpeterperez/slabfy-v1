@@ -197,20 +197,25 @@ export function AddAssetLauncher({
               const frontFormData = new FormData();
               frontFormData.append('image', frontFile);
               
-              console.log('📤 Uploading front image...');
+              console.log('📤 Uploading front image...', { size: frontFile.size, type: frontFile.type });
+              const authHeaders = await getAuthHeaders();
+              console.log('🔐 Auth headers:', authHeaders);
+              
               const frontResponse = await fetch(`/api/user/${user.id}/asset-images`, {
                 method: 'POST',
-                headers: await getAuthHeaders(),
+                headers: authHeaders,
                 body: frontFormData,
               });
+              
+              console.log('📥 Front upload response status:', frontResponse.status, frontResponse.statusText);
               
               if (frontResponse.ok) {
                 const frontData = await frontResponse.json();
                 frontUrl = frontData.imageUrl;
                 console.log('✅ Front image uploaded:', frontUrl);
               } else {
-                const error = await frontResponse.text();
-                console.error('❌ Front image upload failed:', error);
+                const errorText = await frontResponse.text();
+                console.error('❌ Front image upload failed:', frontResponse.status, errorText);
               }
             }
             
@@ -220,20 +225,24 @@ export function AddAssetLauncher({
               const backFormData = new FormData();
               backFormData.append('image', backFile);
               
-              console.log('📤 Uploading back image...');
+              console.log('📤 Uploading back image...', { size: backFile.size, type: backFile.type });
+              const authHeaders = await getAuthHeaders();
+              
               const backResponse = await fetch(`/api/user/${user.id}/asset-images`, {
                 method: 'POST',
-                headers: await getAuthHeaders(),
+                headers: authHeaders,
                 body: backFormData,
               });
+              
+              console.log('📥 Back upload response status:', backResponse.status, backResponse.statusText);
               
               if (backResponse.ok) {
                 const backData = await backResponse.json();
                 backUrl = backData.imageUrl;
                 console.log('✅ Back image uploaded:', backUrl);
               } else {
-                const error = await backResponse.text();
-                console.error('❌ Back image upload failed:', error);
+                const errorText = await backResponse.text();
+                console.error('❌ Back image upload failed:', backResponse.status, errorText);
               }
             }
           } catch (uploadError) {
