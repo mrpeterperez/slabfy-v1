@@ -1,3 +1,4 @@
+import { logger } from "./logger";
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { apiRequest } from './queryClient';
 
@@ -123,13 +124,13 @@ export const api = {
     },
     // Upload avatar through backend API
     uploadAvatar: async (userId: string, file: File): Promise<User> => {
-      console.log(`Starting avatar upload for user ${userId}, file size: ${Math.round(file.size / 1024)}KB`);
+      logger.dev(`Starting avatar upload for user ${userId}, file size: ${Math.round(file.size / 1024)}KB`);
       
       // Create FormData for file upload
       const formData = new FormData();
       formData.append('avatar', file);
 
-      console.log('Sending avatar upload request...');
+      logger.dev('Sending avatar upload request...');
 
       // Include Supabase access token for server auth
       const { data: sessionData } = await supabase.auth.getSession();
@@ -148,7 +149,7 @@ export const api = {
       }
 
       const result = await response.json();
-      console.log('Avatar upload completed successfully');
+      logger.dev('Avatar upload completed successfully');
       
       // Return the result with avatar URL (profile is already updated on backend)
       return result;

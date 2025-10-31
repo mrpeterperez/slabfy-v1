@@ -34,8 +34,7 @@ export const useContacts = (archived?: boolean) => {
     // Moderate caching: refresh when user revisits
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000, // keep cached for 15 minutes
-    refetchOnMount: true, // Refresh when component mounts
-    refetchOnWindowFocus: true, // Refresh when user returns to tab
+    // Cache settings handled by global QueryClient defaults
   });
 };
 
@@ -48,8 +47,7 @@ export const useContactsSummary = (archived?: boolean) => {
     queryFn: () => getContactsSummary(archived),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    // Cache settings handled by global QueryClient defaults
     // Instant zeros while fetching
     placeholderData: {
       totalContacts: 0,

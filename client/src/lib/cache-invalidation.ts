@@ -6,7 +6,8 @@
  * throughout the app reflect updated pricing immediately.
  */
 
-import { queryClient } from '@/lib/queryClient';
+import { queryClient } from "./queryClient";
+import { logger } from "./logger";
 import { apiRequest } from '@/lib/queryClient';
 
 // ===== ID RESOLUTION =====
@@ -107,7 +108,7 @@ export async function invalidateAssetCache(assetOrId: string | {id?: string, glo
     return;
   }
 
-  console.log(`🗑️ Invalidating client cache for asset IDs:`, assetIds);
+  logger.dev(`🗑️ Invalidating client cache for asset IDs:`, assetIds);
 
   // Create promises for all ID variations to ensure comprehensive cache clearing
   const invalidationPromises: Promise<void>[] = [];
@@ -217,7 +218,7 @@ export async function invalidateAssetCache(assetOrId: string | {id?: string, glo
   );
 
   await Promise.all(invalidationPromises);
-  console.log(`✅ Client cache invalidated for asset IDs:`, assetIds);
+  logger.dev(`✅ Client cache invalidated for asset IDs:`, assetIds);
 }
 
 /**
@@ -232,7 +233,7 @@ export async function invalidateAssetsCache(assetsOrIds: string[] | Array<{id?: 
     return;
   }
 
-  console.log(`🗑️ Invalidating client cache for ${assetIds.length} asset IDs:`, assetIds);
+  logger.dev(`🗑️ Invalidating client cache for ${assetIds.length} asset IDs:`, assetIds);
 
   // Invalidate individual asset caches - now includes CRITICAL missing patterns
   const individualInvalidations = assetIds.map(assetId => [
@@ -320,7 +321,7 @@ export async function invalidateAssetsCache(assetsOrIds: string[] | Array<{id?: 
   ];
 
   await Promise.all([...individualInvalidations, ...generalInvalidations]);
-  console.log(`✅ Client cache invalidated for ${assetIds.length} asset IDs`);
+  logger.dev(`✅ Client cache invalidated for ${assetIds.length} asset IDs`);
 }
 
 /**
@@ -328,7 +329,7 @@ export async function invalidateAssetsCache(assetsOrIds: string[] | Array<{id?: 
  * Nuclear option for when extensive pricing updates occur
  */
 export async function invalidateAllPricingCache(): Promise<void> {
-  console.log('🧹 Invalidating ALL pricing-related client cache');
+  logger.dev('🧹 Invalidating ALL pricing-related client cache');
 
   const invalidationPromises = [
     // All market data - comprehensive predicate to catch all pricing-related queries
@@ -367,7 +368,7 @@ export async function invalidateAllPricingCache(): Promise<void> {
   ];
 
   await Promise.all(invalidationPromises);
-  console.log('✅ ALL pricing-related client cache invalidated');
+  logger.dev('✅ ALL pricing-related client cache invalidated');
 }
 
 // ===== SERVER-SIDE CACHE INVALIDATION =====
@@ -387,13 +388,13 @@ export async function invalidateServerCache(assetsOrIds: string | string[] | {id
     return;
   }
 
-  console.log(`🗑️ Invalidating server cache for resolved asset IDs:`, resolvedIds);
+  logger.dev(`🗑️ Invalidating server cache for resolved asset IDs:`, resolvedIds);
 
   try {
     await apiRequest('POST', '/api/market/purge', {
       ids: resolvedIds
     });
-    console.log(`✅ Server cache invalidated for ${resolvedIds.length} assets`);
+    logger.dev(`✅ Server cache invalidated for ${resolvedIds.length} assets`);
   } catch (error) {
     console.error('❌ Failed to invalidate server cache:', error);
     // Don't throw - server cache invalidation failure shouldn't break the app
@@ -405,13 +406,13 @@ export async function invalidateServerCache(assetsOrIds: string | string[] | {id
  * Uses pattern-based clearing for complete cache reset
  */
 export async function invalidateAllServerCache(): Promise<void> {
-  console.log('🧹 Invalidating ALL server cache');
+  logger.dev('🧹 Invalidating ALL server cache');
 
   try {
     await apiRequest('POST', '/api/market/purge', {
       pattern: 'market:*'
     });
-    console.log('✅ ALL server cache invalidated');
+    logger.dev('✅ ALL server cache invalidated');
   } catch (error) {
     console.error('❌ Failed to invalidate all server cache:', error);
     // Don't throw - server cache invalidation failure shouldn't break the app
@@ -432,7 +433,7 @@ export async function invalidateAssetPricing(assetOrId: string | {id?: string, g
     return;
   }
 
-  console.log(`🔄 Complete cache invalidation for asset:`, assetIds);
+  logger.dev(`🔄 Complete cache invalidation for asset:`, assetIds);
 
   // Run both invalidations in parallel for efficiency
   await Promise.all([
@@ -440,7 +441,7 @@ export async function invalidateAssetPricing(assetOrId: string | {id?: string, g
   invalidateServerCache(assetOrId)
   ]);
 
-  console.log(`✅ Complete cache invalidation completed for asset IDs:`, assetIds);
+  logger.dev(`✅ Complete cache invalidation completed for asset IDs:`, assetIds);
 }
 
 /**
@@ -455,7 +456,7 @@ export async function invalidateAssetsPricing(assetsOrIds: string[] | Array<{id?
     return;
   }
 
-  console.log(`🔄 Complete cache invalidation for ${assetIds.length} asset IDs`);
+  logger.dev(`🔄 Complete cache invalidation for ${assetIds.length} asset IDs`);
 
   // Run both invalidations in parallel for efficiency
   await Promise.all([
@@ -463,7 +464,7 @@ export async function invalidateAssetsPricing(assetsOrIds: string[] | Array<{id?
     invalidateServerCache(assetsOrIds)
   ]);
 
-  console.log(`✅ Complete cache invalidation completed for ${assetIds.length} asset IDs`);
+  logger.dev(`✅ Complete cache invalidation completed for ${assetIds.length} asset IDs`);
 }
 
 /**
@@ -471,7 +472,7 @@ export async function invalidateAssetsPricing(assetsOrIds: string[] | Array<{id?
  * Nuclear option - clears both client and server-side caches completely
  */
 export async function invalidateAllPricing(): Promise<void> {
-  console.log('🔥 NUCLEAR: Complete invalidation of ALL pricing caches');
+  logger.dev('🔥 NUCLEAR: Complete invalidation of ALL pricing caches');
 
   // Run both invalidations in parallel
   await Promise.all([
@@ -479,7 +480,7 @@ export async function invalidateAllPricing(): Promise<void> {
     invalidateAllServerCache()
   ]);
 
-  console.log('✅ NUCLEAR: Complete invalidation of ALL pricing caches completed');
+  logger.dev('✅ NUCLEAR: Complete invalidation of ALL pricing caches completed');
 }
 
 // ===== SPECIALIZED INVALIDATION FUNCTIONS =====
@@ -491,7 +492,7 @@ export async function invalidateAllPricing(): Promise<void> {
  */
 export async function invalidateAfterManualRefresh(assetOrId: string | {id?: string, globalAssetId?: string}): Promise<void> {
   const assetIds = getIdVariations(assetOrId);
-  console.log(`🔄 Cache invalidation after manual refresh for asset IDs:`, assetIds);
+  logger.dev(`🔄 Cache invalidation after manual refresh for asset IDs:`, assetIds);
   
   // For manual refreshes, we want to ensure immediate UI updates
   // Invalidate and refetch immediately
@@ -525,7 +526,7 @@ export async function invalidateAfterManualRefresh(assetOrId: string | {id?: str
   
   await Promise.all(refetchPromises);
 
-  console.log(`✅ Manual refresh cache invalidation completed for asset IDs:`, assetIds);
+  logger.dev(`✅ Manual refresh cache invalidation completed for asset IDs:`, assetIds);
 }
 
 /**
@@ -535,13 +536,13 @@ export async function invalidateAfterManualRefresh(assetOrId: string | {id?: str
  */
 export async function invalidateAfterBackgroundUpdate(assetsOrIds: string[] | Array<{id?: string, globalAssetId?: string}>): Promise<void> {
   const assetIds = getIdVariations(assetsOrIds);
-  console.log(`🔄 Cache invalidation after background update for ${assetIds.length} asset IDs`);
+  logger.dev(`🔄 Cache invalidation after background update for ${assetIds.length} asset IDs`);
   
   // For background updates, we can be less aggressive
   // Just invalidate without forcing immediate refetch
   await invalidateAssetsPricing(assetsOrIds);
 
-  console.log(`✅ Background update cache invalidation completed for ${assetIds.length} asset IDs`);
+  logger.dev(`✅ Background update cache invalidation completed for ${assetIds.length} asset IDs`);
 }
 
 /**
@@ -551,7 +552,7 @@ export async function invalidateAfterBackgroundUpdate(assetsOrIds: string[] | Ar
  */
 export async function invalidateAfterAssetAddition(assetsOrIds: string[] | Array<{id?: string, globalAssetId?: string}>): Promise<void> {
   const assetIds = getIdVariations(assetsOrIds);
-  console.log(`🔄 Cache invalidation after asset addition for ${assetIds.length} asset IDs`);
+  logger.dev(`🔄 Cache invalidation after asset addition for ${assetIds.length} asset IDs`);
   
   // For new assets, we want to ensure fresh data is fetched
   // Invalidate and set up polling for pending pricing
@@ -570,7 +571,7 @@ export async function invalidateAfterAssetAddition(assetsOrIds: string[] | Array
     }),
   ]);
 
-  console.log(`✅ Asset addition cache invalidation completed for ${assetIds.length} asset IDs`);
+  logger.dev(`✅ Asset addition cache invalidation completed for ${assetIds.length} asset IDs`);
 }
 
 // All functions are exported individually above with their declarations

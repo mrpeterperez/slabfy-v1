@@ -4,6 +4,7 @@
 // Feature: buying-desk-v0
 // Dependencies: ui components, table cell components
 
+import { memo } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ExternalLink } from "lucide-react";
 import { ConfidenceIndicator } from "@/components/ui/metrics/confidence-indicator";
@@ -31,7 +32,7 @@ interface TableRowProps {
   onRemoveFromSession: () => void;
 }
 
-export function TableRow({
+export const TableRow = memo(function TableRow({
   row,
   visible,
   selected,
@@ -253,7 +254,9 @@ export function TableRow({
           onViewAsset={onAssetClick}
           onRemoveFromSession={onRemoveFromSession}
         />
-      </td>
+            </td>
     </tr>
   );
-}
+});
+
+TableRow.displayName = 'TableRow';

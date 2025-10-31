@@ -52,8 +52,7 @@ export function TableContainer({ sessionId, onOpenCart, search: externalSearch, 
       const res = await apiRequest("GET", `/api/buying-desk/sessions/${sessionId}/assets`);
       return res.json() as Promise<BuyingDeskAsset[]>;
     },
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
+    // Cache settings handled by global QueryClient defaults
   });
 
   // Market data fetch

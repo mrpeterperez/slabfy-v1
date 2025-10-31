@@ -17,10 +17,7 @@ export function useSessionAssets(sessionId: string) {
 		queryKey: keys.assets(sessionId),
 		queryFn: () => http(`/api/buying-desk/sessions/${sessionId}/assets`),
 		enabled: !!sessionId,
-		staleTime: 60_000, // 1 minute - critical for buying desk workflow
-		refetchOnMount: true, // Refetch when component mounts for fresh data
-		refetchOnWindowFocus: true, // Refetch when returning to tab
-		refetchOnReconnect: true, // Refetch on reconnect to ensure fresh data
+		// Cache settings handled by global QueryClient defaults
 	});
 }
 

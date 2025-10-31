@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocation, Link } from "wouter";
+import { logger } from "@/lib/logger";
 
 import { useAuth } from "@/components/auth-provider";
 import { usePageTitle } from "@/hooks/use-page-title";
@@ -83,7 +84,7 @@ export default function SignUp() {
         return;
       }
       
-      console.log("Signing up with invite code:", validatedInviteCode); // DEBUG
+      logger.dev("Signing up with invite code:", validatedInviteCode); // DEBUG
       
       // Pass invite code to signUp - it stores it in Supabase user_metadata!
       const result: SignUpResult = await signUp(data.email, data.password, validatedInviteCode, "/onboarding/step1");
@@ -130,7 +131,7 @@ export default function SignUp() {
 
   return (
     <InviteGate onValidCode={(code) => {
-      console.log("InviteGate validated code:", code); // DEBUG
+      logger.dev("InviteGate validated code:", code); // DEBUG
       setValidatedInviteCode(code || "");
       setInviteValidated(true);
     }}>

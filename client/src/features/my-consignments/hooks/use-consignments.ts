@@ -36,8 +36,7 @@ export const useConsignments = (archived?: boolean, status?: string) => {
     queryFn: () => getConsignments(user!.id, archived, status),
     enabled: !!user?.id && !authLoading,
     staleTime: 60_000, // 1 minute - balance between freshness and performance
-    refetchOnWindowFocus: true, // Refetch when user returns to tab
-    refetchOnMount: true, // Refetch when component mounts
+    // Cache settings handled by global QueryClient defaults
   });
 };
 
@@ -50,8 +49,7 @@ export const useConsignment = (consignmentId: string) => {
     queryFn: () => getConsignment(consignmentId),
     enabled: !!consignmentId,
     staleTime: 60_000, // 1 minute - balance between freshness and performance
-    refetchOnWindowFocus: true, // Refetch when user returns to tab
-    refetchOnMount: true, // Refetch when component mounts
+    // Cache settings handled by global QueryClient defaults
   });
 };
 

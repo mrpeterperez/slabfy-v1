@@ -19,8 +19,7 @@ export const useContacts = () => {
     queryFn: getContacts,
     enabled: !!user?.id && !authLoading,
     staleTime: 5 * 60 * 1000, // 5 minutes - contacts don't change frequently
-    refetchOnWindowFocus: true, // Refetch when returning to tab
-    refetchOnMount: true, // Refetch when component remounts
+    // Cache settings handled by global QueryClient defaults
   });
 };
 

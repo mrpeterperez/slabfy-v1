@@ -29,7 +29,7 @@ export interface UseMarketSnapshotOptions {
   staleTime?: number;
   refetchOnWindowFocus?: boolean;
   pendingTimeoutMs?: number;
-  pollIntervalMs?: number;
+  pollIntervalMs?: number | false;
 }
 
 // Default configuration constants
@@ -38,10 +38,10 @@ const DEFAULT_OPTIONS: Required<UseMarketSnapshotOptions> = {
   refetchInterval: false,
   includeHistory: false,
   historyPoints: 30,
-  staleTime: 15_000, // 15 seconds
-  refetchOnWindowFocus: true,
+  staleTime: 5 * 60 * 1000, // 5 minutes (was 15 seconds - way too aggressive)
+  refetchOnWindowFocus: false, // Don't spam on tab switch
   pendingTimeoutMs: 15_000, // 15 seconds
-  pollIntervalMs: 4_000, // 4 seconds
+  pollIntervalMs: false, // Polling disabled - use cache instead
 };
 
 /**
@@ -178,15 +178,11 @@ export function useMarketSnapshot(
       }
     },
     enabled: config.enabled && assetIds.length > 0,
-    // Poll while assets are pending, otherwise use configured interval
-    refetchInterval: () => {
-      const hasPending = Object.keys(pending).length > 0;
-      if (hasPending) return config.pollIntervalMs;
-      return config.refetchInterval;
-    },
-    refetchIntervalInBackground: true,
+    // Polling disabled - rely on cache and manual refetch
+    refetchInterval: config.refetchInterval,
+    refetchIntervalInBackground: false,
     refetchOnWindowFocus: config.refetchOnWindowFocus,
-    refetchOnMount: true,
+    refetchOnMount: false, // Don't refetch on mount if cache is fresh
     staleTime: config.staleTime,
     // Structural sharing helps prevent unnecessary re-renders
     structuralSharing: true,

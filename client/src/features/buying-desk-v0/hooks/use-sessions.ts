@@ -20,13 +20,11 @@ export function useCreateSessionV0() {
         });
 }
 
-export function useSessionV0(id: string) {
-	return useQuery<BuySession>({ 
-		queryKey: key.session(id), 
-		queryFn: () => buyingDeskApi.sessions.get(id),
-		staleTime: 60_000, // 1 minute - critical for buying desk workflow
-		refetchOnWindowFocus: true, // Refetch when returning to tab
-		refetchOnMount: true, // Refetch when component remounts
+export function useSessionV0(id: string, enabled = true) {
+	return useQuery<BuySession>({
+		queryKey: key.session(id),
+		enabled: enabled && !!id,
+		// Cache settings handled by global QueryClient defaults
 	});
 }
 

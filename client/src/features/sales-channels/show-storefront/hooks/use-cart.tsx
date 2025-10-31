@@ -63,7 +63,7 @@ export function CartProvider({ children, userId }: CartProviderProps) {
     }
   }, [cart, userId]);
 
-  // Auto-remove expired items
+  // Auto-remove expired items every 30 seconds (not every second - too aggressive)
   useEffect(() => {
     if (!cart || cart.items.length === 0) return;
 
@@ -80,7 +80,7 @@ export function CartProvider({ children, userId }: CartProviderProps) {
           setCart({ ...cart, items: validItems });
         }
       }
-    }, 1000); // Check every second
+    }, 30000); // 30 seconds (was 1 second - way too aggressive) // Check every second
 
     return () => clearInterval(interval);
   }, [cart]);

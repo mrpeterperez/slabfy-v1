@@ -44,7 +44,6 @@ export function useStorefrontInventory(eventId?: string) {
     },
     enabled: !!eventId,
     staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnWindowFocus: true, // Refetch when customer returns to storefront
-    refetchOnMount: true, // Refetch when component mounts for fresh availability
+    // Cache settings handled by global QueryClient defaults
   });
 }

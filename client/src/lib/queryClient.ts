@@ -2,6 +2,7 @@ import { QueryClient, QueryFunction, onlineManager } from "@tanstack/react-query
 import { persistQueryClient } from "@tanstack/react-query-persist-client";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import localforage from "localforage";
+import { logger } from "./logger";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -44,10 +45,10 @@ async function getAuthToken(): Promise<string> {
       isRefreshing = true;
       refreshPromise = (async () => {
         try {
-          console.log('Attempting to refresh expired/missing session...');
+          logger.dev('Attempting to refresh expired/missing session...');
           const { data: refreshData, error: refreshError } = await (window as any).supabase.auth.refreshSession();
           if (refreshData?.session?.access_token) {
-            console.log('Session refreshed successfully');
+            logger.dev('Session refreshed successfully');
             return refreshData.session.access_token;
           }
           console.warn('Unable to refresh auth session:', refreshError);

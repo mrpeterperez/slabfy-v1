@@ -25,8 +25,7 @@ export function useStorefrontSettings() {
     queryKey: storefrontKeys.settings(),
     queryFn: () => storefrontApi.getSettings(),
     staleTime: 5 * 60 * 1000, // 5 minutes - settings rarely change
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    // Cache settings handled by global QueryClient defaults
   });
 }
 
@@ -85,7 +84,6 @@ export function useEventStorefrontSettings(eventId: string) {
     queryFn: () => storefrontApi.getEventSettings(eventId),
     enabled: !!eventId,
     staleTime: 5 * 60 * 1000, // 5 minutes - settings rarely change
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    // Cache settings handled by global QueryClient defaults
   });
 }

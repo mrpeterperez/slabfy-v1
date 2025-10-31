@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import type { Asset } from '@shared/schema';
 import { ConfidenceIndicator } from '@/components/ui/metrics/confidence-indicator';
 import { LiquidityIndicator } from '@/components/ui/metrics/liquidity-indicator';
@@ -22,7 +22,7 @@ interface RowProps {
   indent?: number;
 }
 
-export const GroupedTableRow: React.FC<RowProps> = ({ asset, market, show, onClick, onEdit, onDelete, indent = 0 }) => {
+export const GroupedTableRow = memo<RowProps>(function GroupedTableRow({ asset, market, show, onClick, onEdit, onDelete, indent = 0 }) {
   const averagePrice = market?.averagePrice || 0;
   const salesCount = market?.salesCount || 0;
   const confidence = market?.confidence || 0;
@@ -141,4 +141,4 @@ export const GroupedTableRow: React.FC<RowProps> = ({ asset, market, show, onCli
       </tr>
     </TooltipProvider>
   );
-};
+});

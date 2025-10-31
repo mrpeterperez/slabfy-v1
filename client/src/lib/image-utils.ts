@@ -3,6 +3,7 @@
  * Following industry best practices for avatar uploads
  */
 
+import { logger } from "./logger";
 export interface ImageOptimizationOptions {
   maxWidth?: number;
   maxHeight?: number;
@@ -71,7 +72,7 @@ export async function compressImage(
             }
           );
 
-          console.log(`Image optimized: ${Math.round(file.size / 1024)}KB → ${Math.round(optimizedFile.size / 1024)}KB`);
+          logger.dev(`Image optimized: ${Math.round(file.size / 1024)}KB → ${Math.round(optimizedFile.size / 1024)}KB`);
           resolve(optimizedFile);
         },
         `image/${format}`,

@@ -4,6 +4,7 @@
 // Feature: my-portfolio-v0
 // Dependencies: react, lucide-react, @/components/ui, @shared/schema
 
+import { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -39,7 +40,7 @@ interface PortfolioTableRowV0Props {
   isPricingLoading?: boolean;
 }
 
-export function PortfolioTableRowV0({
+export const PortfolioTableRowV0 = memo(function PortfolioTableRowV0({
   asset,
   show,
   isLoading,
@@ -254,7 +255,9 @@ export function PortfolioTableRowV0({
           </DropdownMenuContent>
         </DropdownMenu>
       </td>
-  </tr>
+    </tr>
   </TooltipProvider>
   );
-}
+});
+
+PortfolioTableRowV0.displayName = 'PortfolioTableRowV0';
