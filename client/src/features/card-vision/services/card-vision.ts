@@ -20,6 +20,14 @@ export async function analyzeCardImages(
   backImage?: string
 ): Promise<CardAnalysisResult> {
   try {
+    // Debug: Check if we have an active session
+    const { data: sessionData } = await supabase.auth.getSession();
+    console.log('[Card Vision] Session check:', {
+      hasSession: !!sessionData.session,
+      hasAccessToken: !!sessionData.session?.access_token,
+      userId: sessionData.session?.user?.id
+    });
+
     const { data, error } = await supabase.functions.invoke('analyze-card-image', {
       body: { 
         frontImage,
