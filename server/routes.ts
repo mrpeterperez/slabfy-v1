@@ -34,6 +34,7 @@ import purchasesRoutes from "./routes/purchases";
 import { analyticsRouter } from "./routes/analytics";
 import dashboardRoutes from "./routes/dashboard";
 import storefrontRoutes from "./routes/storefront";
+import cardSearchRoutes from "./routes/card-search";
 
 export async function registerRoutes(app: Express): Promise<void> {
   // Swagger UI setup - TEMPORARILY DISABLED due to YAML parsing errors
@@ -63,6 +64,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.use("/api", refreshRoutes);
   app.use("/api/pricing", pricingRoutes);
   app.use("/api/market", marketRoutes);
+  app.use("/api/card-search", cardSearchRoutes);
   app.use("/api/events", eventsRoutes);
   // app.use("/api/card-shows", cardShowsRoutes); // Removed - scraping complexity not needed
   app.use("/api", purchasesRoutes);

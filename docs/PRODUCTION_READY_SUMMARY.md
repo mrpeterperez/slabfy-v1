@@ -24,7 +24,7 @@ client/src/features/card-vision/
 ├── components/
 │   ├── dual-scan-camera/
 │   │   ├── dual-scan-camera.tsx    ✅ Image compression, memory leak fixed
-│   │   └── index.ts
+│   │   └── index.tsh
 │   └── processing-queue/
 │       ├── processing-queue.tsx     ✅ Clean UI, no console.logs
 │       └── index.ts

@@ -10,6 +10,7 @@ import { AssetSummary } from '@/components/asset/asset-summary';
 import { PLACEHOLDER_IMAGE_URL } from '@/lib/constants';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { AssetActions } from '@/features/asset-details/components/asset-actions';
+import { NoMarketData } from '@/components/empty-states';
 
 interface RowProps {
   asset: Asset;
@@ -30,17 +31,6 @@ export const GroupedTableRow: React.FC<RowProps> = ({ asset, market, show, onCli
   const hasMarket = (salesCount > 0) || (averagePrice > 0);
   const unrealized = hasMarket && buyPrice && buyPrice > 0 ? averagePrice - buyPrice : null;
   const unrealizedPct = hasMarket && buyPrice && buyPrice > 0 ? ((averagePrice - buyPrice) / buyPrice) * 100 : null;
-
-  const NoMarketData = () => (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="text-muted-foreground cursor-help">—</span>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>No market activity found</p>
-      </TooltipContent>
-    </Tooltip>
-  );
 
   return (
     <TooltipProvider delayDuration={100}>

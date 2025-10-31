@@ -27,7 +27,7 @@ const BATCH_THRESHOLD = 10; // Use batch API for >10 assets
 const MAX_RETRIES = 5;
 const INITIAL_DELAY = 400; // ms
 const BACKOFF_FACTOR = 1.5;
-const POLL_INTERVAL = 4000; // ms for pending assets
+const POLL_INTERVAL = 30000; // ms for pending assets (30 seconds instead of 4)
 const PENDING_TIMEOUT = 120000; // 2 minutes max wait
 
 /**
@@ -81,19 +81,13 @@ export function useUnifiedPricing(
       setData(prev => ({ ...prev, [assetId]: pricingData }));
       options?.onPriceUpdate?.(assetId, pricingData);
 
-      // If still no data and we have retries, schedule retry
-      if (!pricingData.hasData && tracker.attempts < MAX_RETRIES && !abortRef.current) {
-        const delay = Math.round(INITIAL_DELAY * Math.pow(BACKOFF_FACTOR, tracker.attempts));
-        tracker.attempts += 1;
-        tracker.timeoutId = window.setTimeout(() => fetchSingleAsset(assetId), delay);
-      } else {
-        // Remove from pending if we have data or exhausted retries
-        setPending(prev => {
-          const next = new Set(prev);
-          next.delete(assetId);
-          return next;
-        });
-      }
+      // Remove from pending - we got a valid response
+      // Don't keep retrying assets with zero data forever
+      setPending(prev => {
+        const next = new Set(prev);
+        next.delete(assetId);
+        return next;
+      });
     } catch (error) {
       // Retry on error
       if (tracker.attempts < MAX_RETRIES && !abortRef.current) {
@@ -146,16 +140,10 @@ export function useUnifiedPricing(
           };
           updates[assetId] = pricingData;
           
-          // If still no data, keep in pending for retry
-          if (!pricingData.hasData) {
-            const tracker = trackersRef.current[assetId];
-            if (tracker && tracker.attempts < MAX_RETRIES) {
-              tracker.attempts += 1;
-              stillPending.add(assetId);
-            }
-          }
+          // Don't keep polling - we got a valid response even if data is zero
+          // Assets with no market data should not be retried endlessly
         } else {
-          // No data returned for this asset, keep pending
+          // No data returned for this asset, keep pending for retry
           const tracker = trackersRef.current[assetId];
           if (tracker && tracker.attempts < MAX_RETRIES) {
             tracker.attempts += 1;
@@ -230,6 +218,8 @@ export function useUnifiedPricing(
     }
 
     // Set up polling for pending assets
+    // DISABLED: Polling causes excessive API spam, cache handles freshness
+    /*
     pollIntervalRef.current = window.setInterval(() => {
       if (pending.size > 0 && !abortRef.current) {
         const pendingIds = Array.from(pending);
@@ -240,6 +230,7 @@ export function useUnifiedPricing(
         }
       }
     }, POLL_INTERVAL);
+    */
 
     // Cleanup
     return () => {

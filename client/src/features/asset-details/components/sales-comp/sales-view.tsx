@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/components/auth-provider'
+import { ChartEmptyState } from '@/components/empty-states';
 
 import { Asset } from '@shared/schema'
 
@@ -113,8 +114,8 @@ export function SalesView({ asset, enabled = true }: SalesViewProps) {
 
         {/* Sales table */}
         {sortedSalesData.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            {showVerifiedOnly ? 'No verified sales data available' : 'No sales data available'}
+          <div className="relative min-h-[300px]">
+            <ChartEmptyState />
           </div>
         ) : (
           <div className="space-y-4">

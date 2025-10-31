@@ -435,6 +435,143 @@ router.get("/:userId/assets/check-duplicate/:certNumber", authenticateUser, vali
   }
 });
 
+// POST /api/user/:userId/assets/batch - Add multiple assets at once
+router.post("/:userId/assets/batch", authenticateUser, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.params.userId;
+    const authenticatedUserId = req.user?.id;
+    
+    // Ensure user can only add assets to their own portfolio
+    if (authenticatedUserId !== userId) {
+      return res.status(403).json({ error: "You can only add assets to your own portfolio" });
+    }
+
+    const { assets } = req.body;
+    
+    if (!Array.isArray(assets) || assets.length === 0) {
+      return res.status(400).json({ error: "Assets array is required" });
+    }
+
+    console.log(`🎯 Batch creating ${assets.length} assets for user ${userId}`);
+
+    const createdAssets: any[] = [];
+    const errors: any[] = [];
+
+    for (const assetData of assets) {
+      try {
+        console.log('📦 Processing asset:', {
+          playerName: assetData.playerName,
+          setName: assetData.setName,
+          year: assetData.year,
+          grade: assetData.grade,
+          cardNumber: assetData.cardNumber,
+          certNumber: assetData.certNumber,
+        });
+        
+        // Generate cardId from metadata for sales data grouping
+        let cardId = null;
+        if (assetData.playerName && assetData.setName && assetData.year && assetData.grade) {
+          try {
+            cardId = generateCardId({
+              playerName: assetData.playerName,
+              setName: assetData.setName,
+              year: assetData.year,
+              grade: assetData.grade,
+              cardNumber: assetData.cardNumber,
+              variant: assetData.variant
+            });
+          } catch (error) {
+            console.warn(`⚠️ Failed to generate cardId:`, error);
+          }
+        }
+
+        const globalAssetData = {
+          id: uuidv4(),
+          type: assetData.type || 'graded',
+          title: assetData.title,
+          grader: assetData.grader || 'PSA',
+          playerName: assetData.playerName,
+          setName: assetData.setName,
+          year: assetData.year,
+          cardNumber: assetData.cardNumber,
+          variant: assetData.variant,
+          grade: assetData.grade,
+          certNumber: assetData.certNumber,
+          category: assetData.category,
+          psaImageFrontUrl: assetData.psaImageFrontUrl,
+          psaImageBackUrl: assetData.psaImageBackUrl,
+          cardId: cardId,
+        };
+
+        // Insert or get existing global asset
+        let globalAsset;
+        if (assetData.certNumber) {
+          const [existingGlobalAsset] = await db
+            .select()
+            .from(globalAssets)
+            .where(eq(globalAssets.certNumber, assetData.certNumber))
+            .limit(1);
+
+          if (existingGlobalAsset) {
+            globalAsset = existingGlobalAsset;
+            console.log(`♻️ Reusing existing global asset: ${globalAsset.id}`);
+          } else {
+            [globalAsset] = await db.insert(globalAssets).values(globalAssetData).returning();
+            console.log(`✨ Created new global asset: ${globalAsset.id}`);
+          }
+        } else {
+          [globalAsset] = await db.insert(globalAssets).values(globalAssetData).returning();
+        }
+
+        // Create user asset
+        const userAssetData = {
+          id: uuidv4(),
+          userId: userId,
+          globalAssetId: globalAsset.id,
+          purchasePrice: assetData.purchasePrice || null,
+          purchaseDate: assetData.purchaseDate || null,
+          serialNumber: assetData.serialNumber || null,
+          serialMax: assetData.serialMax || null,
+          serialNumbered: assetData.serialNumbered || false,
+          ownershipStatus: assetData.ownershipStatus || 'own',
+          notes: assetData.notes || null,
+        };
+
+        const [userAsset] = await db.insert(userAssets).values(userAssetData).returning();
+        
+        console.log(`✅ Created user asset: ${userAsset.id}`);
+
+        // Trigger background sales refresh
+        triggerAssetCreationRefresh(globalAsset.id, { type: 'user' });
+
+        createdAssets.push({
+          id: userAsset.id,
+          userAssetId: userAsset.id,
+          globalAssetId: globalAsset.id,
+        });
+      } catch (error) {
+        console.error(`❌ Error creating asset:`, error);
+        errors.push({
+          asset: assetData,
+          error: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    }
+
+    return res.status(201).json({
+      success: createdAssets.length,
+      failed: errors.length,
+      assets: createdAssets,
+      errors: errors.length > 0 ? errors : undefined,
+      message: `Successfully added ${createdAssets.length} of ${assets.length} assets`
+    });
+
+  } catch (error) {
+    console.error("Error in batch asset creation:", error);
+    return res.status(500).json({ error: "Failed to create assets" });
+  }
+});
+
 // POST /api/user/:userId/assets - Add asset to user's portfolio
 router.post("/:userId/assets", authenticateUser, async (req: AuthenticatedRequest, res: Response) => {
   try {

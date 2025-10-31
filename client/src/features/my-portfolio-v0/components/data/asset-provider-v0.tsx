@@ -27,10 +27,10 @@ export function AssetProviderV0({ userId, children }: AssetProviderV0Props) {
   const { data: assetsRaw, isLoading, error, refetch } = useQuery<Asset[]>({
     queryKey: [userId ? `/api/user/${userId}/assets` : ''],
     enabled: !!userId,
-    staleTime: 0, // 🔥 KILL CACHE - Always fetch fresh data for consignment changes
-    gcTime: 0, // Don't cache at all - consignment assets change frequently
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    staleTime: 5 * 60 * 1000, // 5 minutes - reasonable for portfolio data
+    gcTime: 30 * 60 * 1000, // 30 minutes cache
+    refetchOnWindowFocus: false, // Don't spam on focus changes
+    refetchOnMount: false, // Only fetch when cache is stale
   });
 
   // Normalize ownership field to a stable value

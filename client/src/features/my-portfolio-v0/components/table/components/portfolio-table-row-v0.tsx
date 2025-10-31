@@ -6,7 +6,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { 
   DropdownMenu, 
   DropdownMenuTrigger, 
@@ -23,6 +23,7 @@ import { AssetOwnershipBadge } from '@/components/status/asset-ownership-badge';
 import { ConfidenceIndicator } from '@/components/ui/metrics/confidence-indicator';
 import { LiquidityIndicator } from '@/components/ui/metrics/liquidity-indicator';
 import { AssetSummary } from '@/components/asset/asset-summary';
+import { NoMarketData } from '@/components/empty-states';
 
 interface PortfolioTableRowV0Props {
   asset: Asset;
@@ -69,17 +70,6 @@ export function PortfolioTableRowV0({
   };
 
   // Type badge now centralized
-
-  const NoMarketData = () => (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="text-muted-foreground cursor-help">—</span>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>No market activity found</p>
-      </TooltipContent>
-    </Tooltip>
-  );
 
   const hasMarketData = !!pricing && !isPricingLoading;
 

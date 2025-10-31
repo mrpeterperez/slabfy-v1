@@ -8,17 +8,17 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, ScanLine, Camera, Barcode, Smartphone, ChevronLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/components/auth-provider';
+import { useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { AddAssetModalSimple } from './add-asset-modal-simple';
 import { ManualAddAssetDialog } from '../manual-asset-entry';
 import { CameraScanner } from '../camera-scanner';
 import { analyzeCardImage, type AnalyzedCardFields } from '@/features/card-vision';
 import { DualScanCamera } from '@/features/card-vision/components/dual-scan-camera';
-import { ProcessingQueue } from '@/features/card-vision/components/processing-queue';
 import { analyzeCardImages } from '@/features/card-vision/services/card-vision';
 import type { QueuedCard } from '@/features/card-vision/types';
-
-// Rate limiting configuration
-const MAX_CONCURRENT_PROCESSING = 2;
+import { apiRequest } from '@/lib/queryClient';
 
 interface AddAssetLauncherProps {
   open?: boolean;
@@ -35,14 +35,15 @@ export function AddAssetLauncher({
   const [scanOptionsOpen, setScanOptionsOpen] = useState(false);
   const [scanModalOpen, setScanModalOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
-  const [dualScanOpen, setDualScanOpen] = useState(false); // NEW: Dual-scan camera
-  const [queueOpen, setQueueOpen] = useState(false); // NEW: Processing queue
-  const [processingQueue, setProcessingQueue] = useState<QueuedCard[]>([]); // NEW: Queue state
+  const [dualScanOpen, setDualScanOpen] = useState(false);
   const [manualModalOpen, setManualModalOpen] = useState(false);
   const [scannedCertNumber, setScannedCertNumber] = useState<string | undefined>(undefined);
   const [prefilledData, setPrefilledData] = useState<AnalyzedCardFields | undefined>(undefined);
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
   const open = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
@@ -89,111 +90,213 @@ export function AddAssetLauncher({
     setOpen(false);
   };
 
-  const handleDualScanCapture = async (card: QueuedCard) => {
-    // Add card to queue with processing status
-    setProcessingQueue(prev => [card, ...prev]);
+  const handleDualScanAddCards = async (cards: QueuedCard[]) => {
+    console.log('🎯 handleDualScanAddCards called with cards:', cards);
     
-    // Show queue if not already open
-    setQueueOpen(true);
-
-    // Check rate limiting
-    const processingCount = processingQueue.filter(c => c.status === 'processing').length;
+    // Filter successful cards only
+    const successfulCards = cards.filter(c => c.status === 'success' && c.result);
     
-    if (processingCount >= MAX_CONCURRENT_PROCESSING) {
-      // Queue is full, don't process yet
+    console.log('✅ Successful cards:', successfulCards.length, successfulCards);
+    
+    if (successfulCards.length === 0) {
       toast({
-        title: 'Processing queue',
-        description: `Processing ${processingCount} cards. This card will process next.`,
+        title: "No cards to add",
+        description: "All scanned cards failed analysis",
+        variant: "destructive",
       });
       return;
     }
 
-    // Process the card in background
-    processCard(card);
+    if (!user?.id) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to add cards",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Close camera immediately to prevent multiple calls
+    setDualScanOpen(false);
+
+    // Separate high confidence vs low confidence cards
+    const highConfidenceCards = successfulCards.filter(c => (c.result?.confidence || 0) >= 0.7);
+    const lowConfidenceCards = successfulCards.filter(c => (c.result?.confidence || 0) < 0.7);
+
+    console.log('🎯 High confidence cards:', highConfidenceCards.length, highConfidenceCards.map(c => ({ 
+      player: c.result?.fields.playerName,
+      confidence: c.result?.confidence 
+    })));
+    console.log('⚠️ Low confidence cards:', lowConfidenceCards.length, lowConfidenceCards.map(c => ({ 
+      player: c.result?.fields.playerName,
+      confidence: c.result?.confidence 
+    })));
+
+    // Auto-add high confidence cards directly to portfolio
+    if (highConfidenceCards.length > 0) {
+      try {
+        // Upload images first and get URLs
+        const assetsToAdd = await Promise.all(highConfidenceCards.map(async (card) => {
+          console.log('🔍 Card result fields:', card.result?.fields);
+          
+          // Upload front and back images
+          let frontUrl = null;
+          let backUrl = null;
+          
+          try {
+            // Convert base64 to blob and upload
+            if (card.frontImage) {
+              const frontBlob = await fetch(card.frontImage).then(r => r.blob());
+              const frontFormData = new FormData();
+              frontFormData.append('image', frontBlob, `card-front-${Date.now()}.jpg`);
+              
+              const frontResponse = await fetch(`/api/user/${user.id}/asset-images`, {
+                method: 'POST',
+                body: frontFormData,
+              });
+              
+              if (frontResponse.ok) {
+                const frontData = await frontResponse.json();
+                frontUrl = frontData.imageUrl;
+              }
+            }
+            
+            if (card.backImage) {
+              const backBlob = await fetch(card.backImage).then(r => r.blob());
+              const backFormData = new FormData();
+              backFormData.append('image', backBlob, `card-back-${Date.now()}.jpg`);
+              
+              const backResponse = await fetch(`/api/user/${user.id}/asset-images`, {
+                method: 'POST',
+                body: backFormData,
+              });
+              
+              if (backResponse.ok) {
+                const backData = await backResponse.json();
+                backUrl = backData.imageUrl;
+              }
+            }
+          } catch (uploadError) {
+            console.error('Failed to upload images:', uploadError);
+          }
+          
+          return {
+            type: 'graded',
+            title: `${card.result!.fields.year || ''} ${card.result!.fields.series || card.result!.fields.brand || ''} ${card.result!.fields.playerName || ''} #${card.result!.fields.cardNumber || ''} ${card.result!.fields.grade || ''}`.trim(),
+            grader: card.result!.fields.gradingCompany || 'PSA',
+            playerName: card.result!.fields.playerName,
+            setName: card.result!.fields.series || card.result!.fields.brand,
+            year: card.result!.fields.year,
+            cardNumber: card.result!.fields.cardNumber,
+            variant: card.result!.fields.variant || card.result!.fields.parallel,
+            grade: card.result!.fields.grade || null,
+            certNumber: card.result!.fields.certNumber || null,
+            category: card.result!.fields.sport,
+            ownershipStatus: 'own',
+            psaImageFrontUrl: frontUrl,
+            psaImageBackUrl: backUrl,
+          };
+        }));
+
+        // Debug: log payload
+        console.log('🚀 Batch payload:', JSON.stringify({ assets: assetsToAdd }, null, 2));
+
+        // Show immediate feedback
+        toast({
+          title: `Adding ${highConfidenceCards.length} card${highConfidenceCards.length > 1 ? 's' : ''}...`,
+          description: "High confidence detection - auto-adding to portfolio",
+        });
+
+        // Call batch endpoint
+        let response;
+        try {
+          response = await apiRequest('POST', `/api/user/${user.id}/assets/batch`, {
+            assets: assetsToAdd
+          });
+        } catch (err: any) {
+          // Show server error details in toast
+          console.error('❌ Batch add error:', err);
+          toast({
+            title: "Failed to add cards",
+            description: err?.error || err?.message || "Please try again",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const result = await response.json();
+        
+        console.log('🎯 Batch add result:', result);
+
+        // Invalidate cache to show new assets
+        await queryClient.invalidateQueries({
+          queryKey: [`/api/user/${user.id}/assets`]
+        });
+
+        toast({
+          title: "Cards added!",
+          description: `Successfully added ${result.success} card${result.success > 1 ? 's' : ''} to your portfolio`,
+        });
+
+        // Navigate to portfolio to see new cards
+        navigate('/my-portfolio');
+        
+      } catch (error) {
+        console.error('❌ Batch add error:', error);
+        toast({
+          title: "Failed to add cards",
+          description: error instanceof Error ? error.message : "Please try again",
+          variant: "destructive",
+        });
+      }
+    }
+
+    // Show manual dialog for low confidence cards (user can review/edit)
+    if (lowConfidenceCards.length > 0 && highConfidenceCards.length === 0) {
+      const firstLowConfidence = lowConfidenceCards[0];
+      toast({
+        title: "Low confidence detection",
+        description: "Please review and confirm card details",
+      });
+      setPrefilledData(firstLowConfidence.result!.fields);
+      setManualModalOpen(true);
+    }
   };
 
-  const processCard = async (card: QueuedCard) => {
+  const handleProcessCardInCamera = async (card: QueuedCard): Promise<QueuedCard> => {
     try {
       const result = await analyzeCardImages(card.frontImage, card.backImage);
       
-      // Update card in queue with success status
-      setProcessingQueue(prev => 
-        prev.map(c => c.id === card.id ? { 
-          ...c, 
-          status: 'success' as const,
-          result 
-        } : c)
-      );
-
+      console.log('🔍 AI Vision Analysis Result:', result);
+      console.log('📊 Extracted Fields:', result.fields);
+      console.log('🎯 Card Type:', result.cardType);
+      console.log('💯 Confidence:', result.confidence);
+      
       toast({
         title: "Card analyzed!",
         description: `${result.fields.playerName || 'Card'} ready to add`,
       });
 
-      // Process next queued card if any
-      processNextInQueue();
+      // Return updated card with success status
+      return {
+        ...card,
+        status: 'success' as const,
+        result
+      };
     } catch (error) {
-      // Update card in queue with failed status
-      setProcessingQueue(prev => 
-        prev.map(c => c.id === card.id ? { 
-          ...c, 
-          status: 'failed' as const,
-          error: error instanceof Error ? error.message : 'Analysis failed'
-        } : c)
-      );
-
+      console.error('❌ Card analysis error:', error);
       toast({
         title: "Analysis failed",
-        description: "Tap the card to try again or enter manually",
+        description: error instanceof Error ? error.message : "Failed to analyze card",
         variant: "destructive",
       });
 
-      // Process next queued card even if this one failed
-      processNextInQueue();
-    }
-  };
-
-  const processNextInQueue = () => {
-    // Find next card that's in 'processing' state but not actually being processed
-    const processingCount = processingQueue.filter(c => c.status === 'processing').length;
-    
-    if (processingCount < MAX_CONCURRENT_PROCESSING) {
-      // Find a queued card (added but not yet processed)
-      const nextCard = processingQueue.find(c => 
-        c.status === 'processing' && !c.result && !c.error
-      );
-      
-      if (nextCard) {
-        processCard(nextCard);
-      }
-    }
-  };
-
-  const handleQueueCardClick = (card: QueuedCard) => {
-    if (card.status === 'failed') {
-      // Retry failed card
-      const updatedCard = { ...card, status: 'processing' as const, error: undefined };
-      setProcessingQueue(prev => prev.map(c => c.id === card.id ? updatedCard : c));
-      processCard(updatedCard);
-      return;
-    }
-
-    if (card.status === 'success' && card.result) {
-      // Route based on card type
-      if (card.result.isPSAFastPath && card.result.certNumber) {
-        // PSA fast path - open cert lookup
-        setScannedCertNumber(card.result.certNumber);
-        setScanModalOpen(true);
-        setQueueOpen(false);
-      } else {
-        // Manual entry with pre-filled fields
-        setPrefilledData(card.result.fields);
-        setManualModalOpen(true);
-        setQueueOpen(false);
-      }
-
-      // Remove from queue after opening
-      setProcessingQueue(prev => prev.filter(c => c.id !== card.id));
+      // Return card with failed status
+      return {
+        ...card,
+        status: 'failed' as const,
+        error: error instanceof Error ? error.message : 'Analysis failed'
+      };
     }
   };
 
@@ -484,15 +587,8 @@ export function AddAssetLauncher({
       <DualScanCamera
         open={dualScanOpen}
         onClose={() => setDualScanOpen(false)}
-        onCapture={handleDualScanCapture}
-      />
-
-      {/* Processing Queue */}
-      <ProcessingQueue
-        cards={processingQueue}
-        open={queueOpen}
-        onOpenChange={setQueueOpen}
-        onCardClick={handleQueueCardClick}
+        onAddCards={handleDualScanAddCards}
+        onProcessCard={handleProcessCardInCamera}
       />
     </>
   );

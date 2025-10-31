@@ -18,6 +18,7 @@ import ChartLegend from './chart-legend';
 import TimeRangeSelector from './time-range-selector';
 import { type TimeRange, filterDataByTimeRange, extractSaleDate, count30DaySales } from './utils/time-range-filter';
 import { CrosshairHandler } from './crosshair-handler';
+import { ChartEmptyState } from '@/components/empty-states';
 
 interface TradingChartProps {
   data?: TradingChartData[];
@@ -292,16 +293,12 @@ export default function TradingChart({
         ? 250
         : 372;
 
-    chartContainerRef.current.innerHTML = '';
-
-    // empty state
+    // empty state - return early before clearing innerHTML
     if (!filteredData?.length) {
-      chartContainerRef.current.innerHTML =
-        '<div class="flex items-center justify-center h-full text-muted-foreground">' +
-        '<p>No sales data available for this time range</p>' +
-        '</div>';
       return;
     }
+
+    chartContainerRef.current.innerHTML = '';
 
     // util helpers
     const getHexColor = (cssVar: string) => {
@@ -325,7 +322,7 @@ export default function TradingChart({
   const isMobile = width < 768;
 
   const chartWidth = width > 0 ? width : normalizedWidth;
-  const chartHeight = height > 0 ? height : (isMobile ? 250 : 400);
+  const chartHeight = height > 0 ? height : (isMobile ? 250 : 372);
 
   const chart = createChart(chartContainerRef.current, {
       layout: {
@@ -707,7 +704,7 @@ export default function TradingChart({
       try {
         chart.applyOptions({
           width: fallbackWidth,
-          height: Math.max(fallbackHeight, nextIsMobile ? 250 : 300),
+          height: Math.max(fallbackHeight, nextIsMobile ? 250 : 372),
         });
       } catch (error) {
         // Silently catch resize errors to prevent UI crashes
@@ -806,8 +803,10 @@ export default function TradingChart({
         <div
           ref={chartContainerRef}
           className="w-full h-full"
-          style={{ minHeight: '250px', height: '100%' }}
-        />
+          style={{ minHeight: '380px', height: '100%' }}
+        >
+          {!filteredData?.length && <ChartEmptyState />}
+        </div>
         
 
 

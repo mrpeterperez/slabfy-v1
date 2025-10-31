@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { AssetTypeBadge } from '@/components/ui/asset-type-badge';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { AssetSummary } from '@/components/asset/asset-summary';
+import { NoMarketData } from '@/components/empty-states';
 // import { useDeleteAssetDialog } from '@/features/my-portfolio/components/delete-asset-provider'; // Disabled for v0
 
 interface GroupRowProps {
@@ -29,16 +30,6 @@ export const GroupedGroupRow: React.FC<GroupRowProps> = ({ assets, show, marketD
   const rep = assets[0];
   const repMarket = marketData[rep.globalAssetId || rep.id] || { averagePrice: 0, confidence: 0, salesCount: 0, liquidity: 'cold' };
   const hasMarket = (repMarket.averagePrice > 0) || (repMarket.salesCount > 0);
-  const NoMarketData = () => (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="text-muted-foreground cursor-help">—</span>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>No market activity found</p>
-      </TooltipContent>
-    </Tooltip>
-  );
 
   const aggregates = useMemo(() => {
     let totalCurrentAll = 0; // sum of current market values for all assets (for display only if needed)
