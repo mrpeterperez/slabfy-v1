@@ -106,12 +106,20 @@ export async function deleteAvatar(avatarUrl: string): Promise<boolean> {
  */
 export async function uploadAssetImage(file: Buffer, userId: string, fileName: string): Promise<string> {
   try {
+    console.log(`📤 Starting asset image upload for user ${userId}`, {
+      fileSize: file.length,
+      fileName,
+      bufferType: Buffer.isBuffer(file)
+    });
+
     // Extract file extension
     const fileExtension = fileName.split('.').pop()?.toLowerCase() || 'jpg';
     
     // Create unique filename: userId_timestamp_random.extension
     const uniqueFileName = `${userId}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExtension}`;
     
+    console.log(`📝 Generated unique filename: ${uniqueFileName}`);
+
     // Upload to Supabase storage (public-assets bucket)
     const { data, error } = await supabase.storage
       .from('public-assets')
@@ -122,18 +130,25 @@ export async function uploadAssetImage(file: Buffer, userId: string, fileName: s
       });
 
     if (error) {
-      console.error('Supabase upload error:', error);
+      console.error('❌ Supabase upload error:', {
+        message: error.message,
+        error: JSON.stringify(error)
+      });
       throw new Error(`Failed to upload asset image: ${error.message}`);
     }
+
+    console.log(`✅ Upload successful, getting public URL for: ${data.path}`);
 
     // Get public URL
     const { data: urlData } = supabase.storage
       .from('public-assets')
       .getPublicUrl(data.path);
 
+    console.log(`🔗 Public URL generated: ${urlData.publicUrl}`);
+
     return urlData.publicUrl;
   } catch (error) {
-    console.error('Asset image upload error:', error);
+    console.error('💥 Asset image upload error:', error);
     throw error;
   }
 }
