@@ -159,6 +159,28 @@ export function AddAssetLauncher({
     // Auto-add high confidence cards directly to portfolio
     if (highConfidenceCards.length > 0) {
       try {
+        // Helpers
+        const dataURLToBlob = (dataURL: string): Blob => {
+          const [header, base64] = dataURL.split(',');
+          const mimeMatch = header.match(/data:(.*?);base64/);
+          const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+          const binary = atob(base64);
+          const len = binary.length;
+          const bytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+          return new Blob([bytes], { type: mime });
+        };
+
+        const isMeaningfulGrade = (grade: unknown): boolean => {
+          if (!grade) return false;
+          const s = String(grade).trim();
+          if (!s) return false;
+          if (/^(raw|ungraded|none|n\/?a|na|-|null)$/i.test(s.replace(/\s+/g, ''))) return false;
+          // Consider it graded if there is a digit present (e.g., 10, 9.5) or common grading words
+          if (/(\d|gem|mint|pristine)/i.test(s)) return true;
+          return false;
+        };
+
         // Upload images first and get URLs
         const assetsToAdd = await Promise.all(highConfidenceCards.map(async (card) => {
           console.log('🔍 Card result fields:', card.result?.fields);
@@ -170,9 +192,10 @@ export function AddAssetLauncher({
           try {
             // Convert base64 to blob and upload
             if (card.frontImage) {
-              const frontBlob = await fetch(card.frontImage).then(r => r.blob());
+              const frontBlob = dataURLToBlob(card.frontImage);
+              const frontFile = new File([frontBlob], `card-front-${Date.now()}.jpg`, { type: frontBlob.type || 'image/jpeg' });
               const frontFormData = new FormData();
-              frontFormData.append('image', frontBlob, `card-front-${Date.now()}.jpg`);
+              frontFormData.append('image', frontFile);
               
               console.log('📤 Uploading front image...');
               const frontResponse = await fetch(`/api/user/${user.id}/asset-images`, {
@@ -192,9 +215,10 @@ export function AddAssetLauncher({
             }
             
             if (card.backImage) {
-              const backBlob = await fetch(card.backImage).then(r => r.blob());
+              const backBlob = dataURLToBlob(card.backImage);
+              const backFile = new File([backBlob], `card-back-${Date.now()}.jpg`, { type: backBlob.type || 'image/jpeg' });
               const backFormData = new FormData();
-              backFormData.append('image', backBlob, `card-back-${Date.now()}.jpg`);
+              backFormData.append('image', backFile);
               
               console.log('📤 Uploading back image...');
               const backResponse = await fetch(`/api/user/${user.id}/asset-images`, {
@@ -221,9 +245,10 @@ export function AddAssetLauncher({
           if (frontUrl) assetImages.push(frontUrl);
           if (backUrl) assetImages.push(backUrl);
 
-          // Determine if card is graded based on presence of grade
-          const isGraded = !!card.result!.fields.grade;
+          // Determine if card is graded based on meaningful grade string
+          const isGraded = isMeaningfulGrade(card.result!.fields.grade);
           const cardType = isGraded ? 'graded' : 'raw';
+          const normalizedGrade = isGraded ? String(card.result!.fields.grade) : null;
           
           return {
             type: cardType,
@@ -234,7 +259,7 @@ export function AddAssetLauncher({
             year: card.result!.fields.year,
             cardNumber: card.result!.fields.cardNumber,
             variant: card.result!.fields.variant || card.result!.fields.parallel,
-            grade: card.result!.fields.grade || null,
+            grade: normalizedGrade,
             certNumber: card.result!.fields.certNumber || null,
             category: card.result!.fields.sport,
             ownershipStatus: 'own',
@@ -242,8 +267,17 @@ export function AddAssetLauncher({
           };
         }));
 
+        // De-duplicate assets (same player, set, year, number, variant, grade)
+        const seen = new Set<string>();
+        const dedupedAssets = assetsToAdd.filter(a => {
+          const key = [a.playerName, a.setName, a.year, a.cardNumber, a.variant || '', a.grade || ''].join('|').toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
         // Debug: log payload
-        console.log('🚀 Batch payload:', JSON.stringify({ assets: assetsToAdd }, null, 2));
+        console.log('🚀 Batch payload:', JSON.stringify({ assets: dedupedAssets }, null, 2));
 
         // Show immediate feedback
         toast({
@@ -255,7 +289,7 @@ export function AddAssetLauncher({
         let response;
         try {
           response = await apiRequest('POST', `/api/user/${user.id}/assets/batch`, {
-            assets: assetsToAdd
+            assets: dedupedAssets
           });
         } catch (err: any) {
           // Show server error details in toast

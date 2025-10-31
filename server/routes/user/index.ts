@@ -487,9 +487,11 @@ router.post("/:userId/assets/batch", authenticateUser, async (req: Authenticated
 
         const globalAssetData = {
           id: uuidv4(),
-          type: assetData.type || 'graded',
+          // Derive type if missing: graded when grade provided, otherwise raw
+          type: assetData.type ?? (assetData.grade ? 'graded' : 'raw'),
           title: assetData.title,
-          grader: assetData.grader || 'PSA',
+          // Do NOT default to PSA for camera uploads; only set when provided
+          grader: assetData.grader ?? null,
           playerName: assetData.playerName,
           setName: assetData.setName,
           year: assetData.year,
@@ -607,9 +609,11 @@ router.post("/:userId/assets", authenticateUser, async (req: AuthenticatedReques
 
     const globalAssetData = {
       id: uuidv4(),
-      type: req.body.type || 'graded',
+      // Derive type when missing
+      type: req.body.type ?? (req.body.grade ? 'graded' : 'raw'),
       title: req.body.title,
-      grader: req.body.grader || 'PSA',
+      // Only set grader when explicitly provided (PSA cert flow will provide this)
+      grader: req.body.grader ?? null,
       playerName: req.body.playerName,
       setName: req.body.setName,
       year: req.body.year,
