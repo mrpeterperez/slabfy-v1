@@ -29,13 +29,18 @@ export function MobileProfileDetails({ isOpen, onClose }: MobileProfileDetailsPr
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [optimisticAvatarUrl, setOptimisticAvatarUrl] = useState<string | null>(null);
+  const [pendingAvatarDeletion, setPendingAvatarDeletion] = useState(false);
 
   useEffect(() => {
     if (user) {
       setName(user.name || "");
       setBio(user.bio || "");
     }
-  }, [user]);
+    // Reset pending deletion flag when not editing
+    if (!isEditing) {
+      setPendingAvatarDeletion(false);
+    }
+  }, [user, isEditing]);
 
   const getInitials = () => {
     if (name) {
@@ -84,7 +89,28 @@ export function MobileProfileDetails({ isOpen, onClose }: MobileProfileDetailsPr
     setIsSubmitting(true);
 
     try {
-      if (avatarFile) {
+      // Handle avatar deletion first (if marked for deletion)
+      if (pendingAvatarDeletion) {
+        try {
+          await api.profile.deleteAvatar(user.id);
+          setPendingAvatarDeletion(false);
+          toast({
+            title: "Avatar deleted",
+            description: "Your avatar has been removed.",
+          });
+        } catch (deleteError) {
+          console.error("Avatar deletion failed:", deleteError);
+          const message = deleteError instanceof Error ? deleteError.message : 'Deletion failed';
+          toast({
+            title: "Avatar deletion failed",
+            description: `Avatar could not be deleted: ${message}`,
+            variant: "destructive",
+          });
+          throw deleteError; // Stop the submission if deletion fails
+        }
+      }
+      // Handle avatar upload
+      else if (avatarFile) {
         setOptimisticAvatarUrl(previewUrl);
         setIsUploadingAvatar(true);
 
@@ -139,31 +165,15 @@ export function MobileProfileDetails({ isOpen, onClose }: MobileProfileDetailsPr
     setPreviewUrl(null);
     setAvatarFile(null);
     setOptimisticAvatarUrl(null);
+    setPendingAvatarDeletion(false);
     setIsEditing(false);
   };
 
-  const handleRemoveAvatar = async () => {
-    if (!user?.id) return;
-
-    try {
-      await api.profile.deleteAvatar(user.id);
-      setPreviewUrl(null);
-      setAvatarFile(null);
-      setOptimisticAvatarUrl(null);
-      await refreshUser(user.id);
-
-      toast({
-        title: "Avatar deleted",
-        description: "Your avatar has been removed.",
-      });
-    } catch (error) {
-      console.error("Error deleting avatar:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete avatar. Please try again.",
-        variant: "destructive",
-      });
-    }
+  const handleRemoveAvatar = () => {
+    // Mark avatar for deletion (will be executed on save)
+    setPendingAvatarDeletion(true);
+    setPreviewUrl(null);
+    setAvatarFile(null);
   };
 
   if (!isOpen || !user) return null;
@@ -205,7 +215,7 @@ export function MobileProfileDetails({ isOpen, onClose }: MobileProfileDetailsPr
               </div>
               <div className="flex items-start gap-4">
                 <Avatar className="h-24 w-24 flex-shrink-0">
-                  {(optimisticAvatarUrl || previewUrl || user.avatarUrl) ? (
+                  {(optimisticAvatarUrl || previewUrl || (user.avatarUrl && !pendingAvatarDeletion)) ? (
                     <AvatarImage src={optimisticAvatarUrl || previewUrl || user.avatarUrl} />
                   ) : null}
                   <AvatarFallback className="text-lg">{getInitials()}</AvatarFallback>
@@ -214,7 +224,7 @@ export function MobileProfileDetails({ isOpen, onClose }: MobileProfileDetailsPr
                 <div className="flex-1 space-y-2">
                   <Label htmlFor="avatar" className="cursor-pointer">
                     <div className="rounded-md bg-muted px-4 py-3 text-sm text-center hover:bg-muted/80 transition-colors">
-                      {(previewUrl || user.avatarUrl) ? 'Change Avatar' : 'Add Avatar'}
+                      {(previewUrl || (user.avatarUrl && !pendingAvatarDeletion)) ? 'Change Avatar' : 'Add Avatar'}
                     </div>
                     <Input
                       id="avatar"
@@ -225,7 +235,7 @@ export function MobileProfileDetails({ isOpen, onClose }: MobileProfileDetailsPr
                     />
                   </Label>
 
-                  {(previewUrl || user.avatarUrl) && (
+                  {(previewUrl || (user.avatarUrl && !pendingAvatarDeletion)) && (
                     <button
                       type="button"
                       onClick={handleRemoveAvatar}
@@ -234,6 +244,11 @@ export function MobileProfileDetails({ isOpen, onClose }: MobileProfileDetailsPr
                       <Trash2 className="h-4 w-4" />
                       Delete Avatar
                     </button>
+                  )}
+                  {pendingAvatarDeletion && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Avatar will be deleted when you save changes
+                    </p>
                   )}
                 </div>
               </div>

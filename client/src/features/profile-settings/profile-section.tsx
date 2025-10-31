@@ -27,6 +27,7 @@ export function ProfileSection({ user }: ProfileSectionProps) {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [optimisticAvatarUrl, setOptimisticAvatarUrl] = useState<string | null>(null);
+  const [pendingAvatarDeletion, setPendingAvatarDeletion] = useState(false);
   
   // Update local state when user prop changes
   useEffect(() => {
@@ -36,7 +37,11 @@ export function ProfileSection({ user }: ProfileSectionProps) {
     if (previewUrl && !avatarFile) {
       setPreviewUrl(null);
     }
-  }, [user?.name, user?.bio, user?.avatarUrl, avatarFile, previewUrl]);
+    // Reset pending deletion flag when not editing
+    if (!isEditing) {
+      setPendingAvatarDeletion(false);
+    }
+  }, [user?.name, user?.bio, user?.avatarUrl, avatarFile, previewUrl, isEditing]);
 
   // Generate fallback initials for avatar
   const getInitials = () => {
@@ -104,8 +109,28 @@ export function ProfileSection({ user }: ProfileSectionProps) {
     setIsSubmitting(true);
     
     try {
+      // Handle avatar deletion first (if marked for deletion)
+      if (pendingAvatarDeletion) {
+        try {
+          await api.profile.deleteAvatar(user.id);
+          setPendingAvatarDeletion(false);
+          toast({
+            title: "Avatar deleted",
+            description: "Your avatar has been successfully removed.",
+          });
+        } catch (deleteError) {
+          console.error("Avatar deletion failed:", deleteError);
+          const message = deleteError instanceof Error ? deleteError.message : 'Deletion failed';
+          toast({
+            title: "Avatar deletion failed",
+            description: `Avatar could not be deleted: ${message}`,
+            variant: "destructive",
+          });
+          throw deleteError; // Stop the submission if deletion fails
+        }
+      }
       // Handle avatar upload with optimistic UI (modern UX pattern)
-      if (avatarFile) {
+      else if (avatarFile) {
         // Show optimistic UI immediately
         setOptimisticAvatarUrl(previewUrl);
         setIsUploadingAvatar(true);
@@ -169,34 +194,15 @@ export function ProfileSection({ user }: ProfileSectionProps) {
     setPreviewUrl(null);
     setAvatarFile(null);
     setOptimisticAvatarUrl(null);
+    setPendingAvatarDeletion(false);
     setIsEditing(false);
   };
 
-  const handleRemoveAvatar = async () => {
-    try {
-      // Call the delete avatar API
-      await api.profile.deleteAvatar(user.id);
-      
-      // Clear local state
-      setPreviewUrl(null);
-      setAvatarFile(null);
-      setOptimisticAvatarUrl(null);
-      
-      // Refresh user data to update UI
-      await refreshUser(user.id);
-      
-      toast({
-        title: "Avatar deleted",
-        description: "Your avatar has been successfully removed.",
-      });
-    } catch (error) {
-      console.error("Error deleting avatar:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete your avatar. Please try again.",
-        variant: "destructive",
-      });
-    }
+  const handleRemoveAvatar = () => {
+    // Mark avatar for deletion (will be executed on save)
+    setPendingAvatarDeletion(true);
+    setPreviewUrl(null);
+    setAvatarFile(null);
   };
 
   return (
@@ -224,7 +230,7 @@ export function ProfileSection({ user }: ProfileSectionProps) {
             <div className="flex flex-col items-center gap-4 sm:flex-row">
               <div className="relative">
                 <Avatar className="h-24 w-24">
-                  {(optimisticAvatarUrl || previewUrl || user.avatarUrl) ? (
+                  {(optimisticAvatarUrl || previewUrl || (user.avatarUrl && !pendingAvatarDeletion)) ? (
                     <AvatarImage src={optimisticAvatarUrl || previewUrl || user.avatarUrl} />
                   ) : null}
                   <AvatarFallback className="text-lg">{getInitials()}</AvatarFallback>
@@ -238,7 +244,7 @@ export function ProfileSection({ user }: ProfileSectionProps) {
               <div className="flex-1 space-y-2">
                 <Label htmlFor="avatar" className="cursor-pointer">
                   <div className="rounded-md bg-muted px-3 py-2 text-sm text-center hover:bg-muted/80">
-                    {(previewUrl || user.avatarUrl) ? 'Change Avatar' : 'Add Avatar'}
+                    {(previewUrl || (user.avatarUrl && !pendingAvatarDeletion)) ? 'Change Avatar' : 'Add Avatar'}
                   </div>
                   <Input 
                     id="avatar" 
@@ -248,7 +254,7 @@ export function ProfileSection({ user }: ProfileSectionProps) {
                     onChange={handleAvatarChange}
                   />
                 </Label>
-                {(previewUrl || user.avatarUrl) && (
+                {(previewUrl || (user.avatarUrl && !pendingAvatarDeletion)) && (
                   <Button
                     type="button"
                     variant="outline"
@@ -259,6 +265,11 @@ export function ProfileSection({ user }: ProfileSectionProps) {
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete Avatar
                   </Button>
+                )}
+                {pendingAvatarDeletion && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Avatar will be deleted when you save changes
+                  </p>
                 )}
 
               </div>
