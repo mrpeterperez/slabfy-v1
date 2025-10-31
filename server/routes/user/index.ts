@@ -500,6 +500,7 @@ router.post("/:userId/assets/batch", authenticateUser, async (req: Authenticated
           category: assetData.category,
           psaImageFrontUrl: assetData.psaImageFrontUrl,
           psaImageBackUrl: assetData.psaImageBackUrl,
+          assetImages: assetData.assetImages || null, // Camera-scanned images
           cardId: cardId,
         };
 
