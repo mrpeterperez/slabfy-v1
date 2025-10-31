@@ -4,15 +4,15 @@
 // Feature: card-vision
 // Dependencies: OpenAI API, Deno stdlib
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { MASTER_PROMPT } from './prompt.ts';
 import { buildPSACertDetectionPrompt, buildDualImagePrompt } from './cert-detector.ts';
 import { AI_CONFIG } from './config.ts';
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
 
-if (!OPENAI_API_KEY) {
-  throw new Error('OPENAI_API_KEY environment variable is required');
+if (!GROQ_API_KEY) {
+  throw new Error('GROQ_API_KEY environment variable is required');
 }
 
 /**
@@ -20,10 +20,10 @@ if (!OPENAI_API_KEY) {
  */
 async function checkForPSACert(imageUrl: string): Promise<{ isPSA: boolean; certNumber?: string; confidence: number }> {
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -88,13 +88,12 @@ interface CardAnalysisResponse {
   reasoning?: string;
 }
 
-serve(async (req) => {
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  };
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
+Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -189,11 +188,11 @@ serve(async (req) => {
       );
     }
 
-    // Call OpenAI API
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call GROQ API with Llama 4 Scout Vision (10x faster!)
+    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -207,16 +206,17 @@ serve(async (req) => {
       }),
     });
 
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
+    if (!groqResponse.ok) {
+      const errorText = await groqResponse.text();
+      console.error('GROQ API Error:', errorText);
       return new Response(
-        JSON.stringify({ error: 'Failed to analyze image' }),
+        JSON.stringify({ error: 'Failed to analyze image', details: errorText.substring(0, 200) }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const openaiData = await openaiResponse.json();
-    const content = openaiData.choices[0]?.message?.content;
+    const groqData = await groqResponse.json();
+    const content = groqData.choices[0]?.message?.content;
 
     if (!content) {
       return new Response(

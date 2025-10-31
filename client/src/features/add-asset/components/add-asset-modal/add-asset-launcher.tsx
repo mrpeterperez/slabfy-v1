@@ -180,6 +180,11 @@ export function AddAssetLauncher({
             console.error('Failed to upload images:', uploadError);
           }
           
+          // Build assetImages array from uploaded camera images
+          const assetImages: string[] = [];
+          if (frontUrl) assetImages.push(frontUrl);
+          if (backUrl) assetImages.push(backUrl);
+
           return {
             type: 'graded',
             title: `${card.result!.fields.year || ''} ${card.result!.fields.series || card.result!.fields.brand || ''} ${card.result!.fields.playerName || ''} #${card.result!.fields.cardNumber || ''} ${card.result!.fields.grade || ''}`.trim(),
@@ -193,8 +198,7 @@ export function AddAssetLauncher({
             certNumber: card.result!.fields.certNumber || null,
             category: card.result!.fields.sport,
             ownershipStatus: 'own',
-            psaImageFrontUrl: frontUrl,
-            psaImageBackUrl: backUrl,
+            assetImages: assetImages.length > 0 ? assetImages : null, // User-uploaded camera images
           };
         }));
 
