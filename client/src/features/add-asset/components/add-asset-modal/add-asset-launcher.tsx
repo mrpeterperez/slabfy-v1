@@ -20,6 +20,23 @@ import { analyzeCardImages } from '@/features/card-vision/services/card-vision';
 import type { QueuedCard } from '@/features/card-vision/types';
 import { apiRequest } from '@/lib/queryClient';
 
+// Helper to get auth headers for image uploads
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  if (!(window as any).supabase) {
+    console.warn('Supabase client not available');
+    return {};
+  }
+  
+  try {
+    const { data: { session } } = await (window as any).supabase.auth.getSession();
+    const token = session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch (e) {
+    console.warn('Could not get auth token for upload', e);
+    return {};
+  }
+}
+
 interface AddAssetLauncherProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -153,6 +170,7 @@ export function AddAssetLauncher({
               console.log('📤 Uploading front image...');
               const frontResponse = await fetch(`/api/user/${user.id}/asset-images`, {
                 method: 'POST',
+                headers: await getAuthHeaders(),
                 body: frontFormData,
               });
               
@@ -174,6 +192,7 @@ export function AddAssetLauncher({
               console.log('📤 Uploading back image...');
               const backResponse = await fetch(`/api/user/${user.id}/asset-images`, {
                 method: 'POST',
+                headers: await getAuthHeaders(),
                 body: backFormData,
               });
               
@@ -241,6 +260,25 @@ export function AddAssetLauncher({
         const result = await response.json();
         
         console.log('🎯 Batch add result:', result);
+
+        // Extra assurance: explicitly trigger background refresh for each global asset
+        try {
+          if (Array.isArray(result?.assets)) {
+            await Promise.all(
+              result.assets
+                .map((a: any) => a?.globalAssetId)
+                .filter(Boolean)
+                .map((globalAssetId: string) =>
+                  apiRequest('POST', '/api/refresh', { assetId: globalAssetId, useAIFiltering: true })
+                    .then(r => r.ok ? r.json() : null)
+                    .then(data => console.log('🔄 Explicit refresh queued:', globalAssetId, data?.message || ''))
+                    .catch(err => console.warn('Refresh trigger failed:', globalAssetId, err?.message || err))
+                )
+            );
+          }
+        } catch (e) {
+          console.warn('Failed to trigger explicit refresh after batch add:', e);
+        }
 
         // Invalidate cache to show new assets
         await queryClient.invalidateQueries({
