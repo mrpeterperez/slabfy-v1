@@ -150,6 +150,7 @@ export function AddAssetLauncher({
               const frontFormData = new FormData();
               frontFormData.append('image', frontBlob, `card-front-${Date.now()}.jpg`);
               
+              console.log('📤 Uploading front image...');
               const frontResponse = await fetch(`/api/user/${user.id}/asset-images`, {
                 method: 'POST',
                 body: frontFormData,
@@ -158,6 +159,10 @@ export function AddAssetLauncher({
               if (frontResponse.ok) {
                 const frontData = await frontResponse.json();
                 frontUrl = frontData.imageUrl;
+                console.log('✅ Front image uploaded:', frontUrl);
+              } else {
+                const error = await frontResponse.text();
+                console.error('❌ Front image upload failed:', error);
               }
             }
             
@@ -166,6 +171,7 @@ export function AddAssetLauncher({
               const backFormData = new FormData();
               backFormData.append('image', backBlob, `card-back-${Date.now()}.jpg`);
               
+              console.log('📤 Uploading back image...');
               const backResponse = await fetch(`/api/user/${user.id}/asset-images`, {
                 method: 'POST',
                 body: backFormData,
@@ -174,6 +180,10 @@ export function AddAssetLauncher({
               if (backResponse.ok) {
                 const backData = await backResponse.json();
                 backUrl = backData.imageUrl;
+                console.log('✅ Back image uploaded:', backUrl);
+              } else {
+                const error = await backResponse.text();
+                console.error('❌ Back image upload failed:', error);
               }
             }
           } catch (uploadError) {
@@ -235,6 +245,15 @@ export function AddAssetLauncher({
         // Invalidate cache to show new assets
         await queryClient.invalidateQueries({
           queryKey: [`/api/user/${user.id}/assets`]
+        });
+        
+        // Also invalidate the global assets list and portfolio queries
+        await queryClient.invalidateQueries({
+          queryKey: ['assets']
+        });
+        
+        await queryClient.invalidateQueries({
+          queryKey: ['portfolio']
         });
 
         toast({
