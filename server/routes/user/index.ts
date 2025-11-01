@@ -261,17 +261,45 @@ router.post("/:userId/asset-images", authenticateUser, upload.single('image'), a
     if (!user) return res.status(404).json({ error: "User not found" });
     if (!req.file) return res.status(400).json({ error: "No image file provided" });
 
+    console.log('📸 Asset image upload request:', {
+      userId,
+      fileName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      bufferLength: req.file.buffer.length
+    });
+
     const validation = validateAvatarFile(req.file); // reuse validation
     if (!validation.isValid) return res.status(400).json({ error: validation.error });
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedMimeTypes.includes(req.file.mimetype)) return res.status(400).json({ error: "Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed." });
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/jpg', 
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/heic',
+      'image/heif',
+      'image/bmp',
+      'image/tiff'
+    ];
+    if (!allowedMimeTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({ 
+        error: "Invalid file type. Only common image formats are allowed.",
+        received: req.file.mimetype
+      });
+    }
     if (req.file.size > 5 * 1024 * 1024) return res.status(400).json({ error: "File too large. Maximum size is 5MB." });
 
     const imageUrl = await uploadAssetImage(req.file.buffer, userId, req.file.originalname);
+    console.log('✅ Asset image uploaded successfully:', imageUrl);
     return res.json({ imageUrl });
   } catch (error) {
-    console.error("Error uploading asset image:", error);
-    return res.status(500).json({ error: "Failed to upload asset image" });
+    console.error("❌ Error uploading asset image:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to upload asset image";
+    return res.status(500).json({ 
+      error: "Failed to upload asset image",
+      details: errorMessage 
+    });
   }
 });
 

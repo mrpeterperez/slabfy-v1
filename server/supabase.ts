@@ -112,19 +112,39 @@ export async function uploadAssetImage(file: Buffer, userId: string, fileName: s
       bufferType: Buffer.isBuffer(file)
     });
 
-    // Extract file extension
+    // Extract file extension and normalize MIME type
     const fileExtension = fileName.split('.').pop()?.toLowerCase() || 'jpg';
+    
+    // Map file extension to proper MIME type (support all devices/platforms)
+    const mimeTypeMap: Record<string, string> = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'webp': 'image/webp',
+      'svg': 'image/svg+xml',
+      'heic': 'image/heic',
+      'heif': 'image/heif',
+      'bmp': 'image/bmp',
+      'tiff': 'image/tiff',
+      'tif': 'image/tiff'
+    };
+    
+    const contentType = mimeTypeMap[fileExtension] || 'image/jpeg';
     
     // Create unique filename: userId_timestamp_random.extension
     const uniqueFileName = `${userId}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExtension}`;
     
-    console.log(`📝 Generated unique filename: ${uniqueFileName}`);
+    console.log(`📝 Generated unique filename: ${uniqueFileName}`, {
+      fileExtension,
+      contentType
+    });
 
     // Upload to Supabase storage (public-assets bucket)
     const { data, error } = await supabase.storage
       .from('public-assets')
       .upload(uniqueFileName, file, {
-        contentType: `image/${fileExtension}`,
+        contentType,
         cacheControl: '3600',
         upsert: false // Don't overwrite existing files
       });
