@@ -10,6 +10,7 @@ import { eq, and, sql, notInArray, desc, isNotNull, isNull } from "drizzle-orm";
 import { triggerAssetCreationRefresh } from "../helpers/assetCreationRefresh";
 import { generateCardId } from "../helpers/cardIdGenerator";
 import { isUsernameReserved, getReservedUsernameMessage } from "@shared/reserved-usernames";
+import { generateCardFingerprint } from "@shared/utils/fingerprint";
 
 const router = Router();
 
@@ -513,6 +514,20 @@ router.post("/:userId/assets/batch", authenticateUser, async (req: Authenticated
           }
         }
 
+        // Generate fingerprint for deduplication
+        const fingerprint = generateCardFingerprint({
+          certNumber: assetData.certNumber,
+          playerName: assetData.playerName,
+          setName: assetData.setName,
+          year: assetData.year,
+          cardNumber: assetData.cardNumber,
+          variant: assetData.variant,
+          grade: assetData.grade,
+          grader: assetData.grader,
+        });
+        
+        console.log('🔍 Generated fingerprint:', fingerprint);
+
         const globalAssetData = {
           id: uuidv4(),
           // Derive type if missing: graded when grade provided, otherwise raw
@@ -532,26 +547,53 @@ router.post("/:userId/assets/batch", authenticateUser, async (req: Authenticated
           psaImageBackUrl: assetData.psaImageBackUrl,
           assetImages: assetData.assetImages || null, // Camera-scanned images
           cardId: cardId,
+          fingerprint: fingerprint, // Add fingerprint for deduplication
+          lastPricingUpdate: new Date(), // Set initial pricing timestamp
         };
 
-        // Insert or get existing global asset
+        // Check for existing global asset by fingerprint (deduplication)
         let globalAsset;
-        if (assetData.certNumber) {
-          const [existingGlobalAsset] = await db
-            .select()
-            .from(globalAssets)
-            .where(eq(globalAssets.certNumber, assetData.certNumber))
-            .limit(1);
+        const [existingByFingerprint] = await db
+          .select()
+          .from(globalAssets)
+          .where(eq(globalAssets.fingerprint, fingerprint))
+          .limit(1);
 
-          if (existingGlobalAsset) {
-            globalAsset = existingGlobalAsset;
-            console.log(`♻️ Reusing existing global asset: ${globalAsset.id}`);
-          } else {
-            [globalAsset] = await db.insert(globalAssets).values(globalAssetData).returning();
-            console.log(`✨ Created new global asset: ${globalAsset.id}`);
+        if (existingByFingerprint) {
+          globalAsset = existingByFingerprint;
+          console.log(`♻️ Reusing existing global asset by fingerprint: ${globalAsset.id} (fingerprint: ${fingerprint})`);
+          
+          // 🚨 COLLISION DETECTION: Check if fingerprint matches different card
+          if (globalAsset.playerName !== assetData.playerName || 
+              globalAsset.setName !== assetData.setName ||
+              globalAsset.year !== assetData.year) {
+            console.error('🚨 FINGERPRINT COLLISION DETECTED!', {
+              fingerprint,
+              existingCard: {
+                player: globalAsset.playerName,
+                set: globalAsset.setName,
+                year: globalAsset.year,
+                id: globalAsset.id
+              },
+              newCard: {
+                player: assetData.playerName,
+                set: assetData.setName,
+                year: assetData.year
+              }
+            });
+          }
+          
+          // Update assetImages if new ones provided (camera scans)
+          if (assetData.assetImages && assetData.assetImages.length > 0) {
+            await db
+              .update(globalAssets)
+              .set({ assetImages: assetData.assetImages })
+              .where(eq(globalAssets.id, globalAsset.id));
+            console.log(`📸 Updated asset images for existing card`);
           }
         } else {
           [globalAsset] = await db.insert(globalAssets).values(globalAssetData).returning();
+          console.log(`✨ Created new global asset: ${globalAsset.id} (fingerprint: ${fingerprint})`);
         }
 
         // Create user asset

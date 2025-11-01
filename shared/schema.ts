@@ -119,6 +119,10 @@ export const globalAssets = pgTable("global_assets", {
   lastApiCall: timestamp("last_api_call"),
   nextApiCall: timestamp("next_api_call"),
   aiFiltered: boolean("ai_filtered").default(false), // Track if data has been AI-filtered
+  lastPricingUpdate: timestamp("last_pricing_update"), // Track when pricing was last fetched (for auto-refresh)
+  
+  // Card deduplication
+  fingerprint: text("fingerprint"), // Normalized card identifier for deduplication (player|set|year|number|variant|grade|grader)
   
   // Metadata
   title: text("title"),

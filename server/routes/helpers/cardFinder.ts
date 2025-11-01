@@ -23,6 +23,8 @@ export interface Card {
   serialNumbered: boolean;
   serialNumber: number | null;
   serialMax: number | null;
+  // Pricing staleness tracking
+  lastPricingUpdate: Date | null;
 }
 
 // BATCH VERSION - Ultra-fast portfolio loading BOOM!
@@ -64,6 +66,7 @@ export async function findCardsBatch(cardIds: string[]): Promise<Map<string, Car
       serialNumbered: !!serialMaxFromVariant,
       serialNumber: null,
       serialMax: serialMaxFromVariant ?? null,
+      lastPricingUpdate: cardDetails.lastPricingUpdate,
     });
   }
   
@@ -98,6 +101,7 @@ export async function findCardsBatch(cardIds: string[]): Promise<Map<string, Car
         serialNumbered: userCard.serialNumbered || false,
         serialNumber: userCard.serialNumber,
         serialMax: userCard.serialMax,
+        lastPricingUpdate: cardDetails.lastPricingUpdate,
       });
     }
   }
@@ -149,6 +153,7 @@ export async function findCard(cardId: string): Promise<Card | null> {
         serialNumbered: false,
         serialNumber: null,
         serialMax: null,
+        lastPricingUpdate: cardDetails.lastPricingUpdate,
       };
     }
   }
@@ -202,6 +207,7 @@ export async function findCard(cardId: string): Promise<Card | null> {
         serialNumbered: !!serialMaxFromVariant,
         serialNumber: null,
         serialMax: serialMaxFromVariant ?? null,
+        lastPricingUpdate: cardDetails.lastPricingUpdate,
       };
     }
     
@@ -236,5 +242,6 @@ export async function findCard(cardId: string): Promise<Card | null> {
     serialNumbered: serialNumberedEffective,
   serialNumber: userCard.serialNumber,
     serialMax: serialMaxEffective,
+    lastPricingUpdate: cardDetails.lastPricingUpdate,
   };
 }

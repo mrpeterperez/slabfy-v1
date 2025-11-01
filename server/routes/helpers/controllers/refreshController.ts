@@ -184,7 +184,8 @@ export async function refreshCardSalesById(assetId: string, useAIFiltering = tru
 
 /**
  * Schedules a background refresh for a given asset if needed.
- * Skips redundant calls when sales already exist for the card.
+ * Skips redundant calls when sales already exist for the card AND pricing is fresh (<30 days old).
+ * Forces refresh if pricing is stale (>30 days old).
  */
 export async function scheduleSalesRefresh(assetId: string, opts?: { delayMs?: number; useAIFiltering?: boolean }): Promise<any> {
   try {
@@ -194,11 +195,20 @@ export async function scheduleSalesRefresh(assetId: string, opts?: { delayMs?: n
       return { success: false, message: 'Card not found' };
     }
 
-    // ⚡ INSTANT PRICING: If we already have sales data, return immediately
-    if (card.cardId) {
+    // Check if pricing is stale (>30 days old)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const lastUpdate = card.lastPricingUpdate ? new Date(card.lastPricingUpdate) : null;
+    const isStale = !lastUpdate || lastUpdate < thirtyDaysAgo;
+
+    if (isStale) {
+      console.log(`⏰ Pricing is stale for ${card.cardId || assetId} (last updated: ${lastUpdate?.toISOString() || 'never'}) - forcing refresh`);
+    }
+
+    // ⚡ INSTANT PRICING: If we have sales data AND pricing is fresh, return immediately
+    if (!isStale && card.cardId) {
       const existing = await getSavedSales(card.cardId);
       if (existing.length > 0) {
-        console.log(`⚡ INSTANT PRICING: ${card.cardId} has ${existing.length} existing sales - no API call needed`);
+        console.log(`⚡ INSTANT PRICING: ${card.cardId} has ${existing.length} existing sales - pricing is fresh`);
         return {
           success: true,
           message: `Instant pricing available: using existing ${existing.length} sales records`,
