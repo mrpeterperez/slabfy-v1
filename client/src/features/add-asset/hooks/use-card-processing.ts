@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeCardImages } from '@/features/card-vision/services/card-vision';
 import type { QueuedCard, CardAnalysisResult } from '@/features/card-vision/types';
+import { apiRequest } from '@/lib/queryClient';
 
 interface ProcessCardParams {
   frontImage: string;
@@ -14,6 +15,20 @@ interface ProcessCardParams {
   card: QueuedCard;
   onUpdate: (updates: Partial<QueuedCard>) => void;
   onComplete: () => void;
+}
+
+interface PSACardData {
+  certNumber: string;
+  title: string;
+  playerName: string;
+  setName: string;
+  year: string;
+  cardNumber: string;
+  variant: string;
+  grade: string;
+  category: string;
+  psaImageFrontUrl?: string;
+  psaImageBackUrl?: string;
 }
 
 export function useCardProcessing() {
@@ -40,12 +55,67 @@ export function useCardProcessing() {
       
       console.log('✅ Analysis complete:', {
         confidence: analysisResult.confidence,
+        isPSAFastPath: (analysisResult as any).isPSAFastPath,
+        certNumber: analysisResult.fields.certNumber,
         player: analysisResult.fields.playerName,
         grader: analysisResult.fields.gradingCompany,
         grade: analysisResult.fields.grade
       });
 
-      // Update card with results
+      // PSA FAST PATH: If cert number detected, fetch from PSA API
+      if ((analysisResult as any).isPSAFastPath && analysisResult.fields.certNumber) {
+        console.log('🚀 PSA Fast Path detected! Fetching cert:', analysisResult.fields.certNumber);
+        
+        try {
+          const psaResponse = await apiRequest('GET', `/api/psa/${analysisResult.fields.certNumber}`);
+          const psaData: PSACardData = await psaResponse.json();
+          
+          console.log('✅ PSA data fetched:', psaData);
+          
+          // Merge PSA data with analysis result
+          const enhancedResult: CardAnalysisResult = {
+            ...analysisResult,
+            confidence: 1.0, // PSA API data is 100% accurate
+            fields: {
+              certNumber: psaData.certNumber,
+              playerName: psaData.playerName,
+              year: psaData.year,
+              brand: psaData.setName?.split(' ')[0], // Extract brand from set name
+              series: psaData.setName,
+              cardNumber: psaData.cardNumber,
+              variant: psaData.variant,
+              gradingCompany: 'PSA',
+              grade: psaData.grade,
+              sport: psaData.category,
+            }
+          };
+          
+          // Store PSA data for later use in upload
+          (enhancedResult as any).psaData = psaData;
+          
+          onUpdate({
+            status: 'success',
+            result: enhancedResult,
+            frontImage,
+            backImage,
+          });
+
+          toast({
+            title: "PSA card detected!",
+            description: `${psaData.playerName} - ${psaData.grade} - Cert #${psaData.certNumber}`,
+          });
+
+          onComplete();
+          setIsProcessing(false);
+          return;
+          
+        } catch (psaError) {
+          console.warn('⚠️ PSA API fetch failed, falling back to AI extraction:', psaError);
+          // Fall through to use AI-extracted data
+        }
+      }
+
+      // Standard AI extraction path (non-PSA or PSA fetch failed)
       onUpdate({
         status: 'success',
         result: analysisResult,

@@ -66,6 +66,10 @@ export function useDualScanUpload() {
         const assetsToAdd = await Promise.all(highConfidenceCards.map(async (card) => {
           console.log('🔍 Card result fields:', card.result?.fields);
           
+          // Check if this is a PSA card with complete data from PSA API
+          const hasPSAData = !!(card.result as any)?.psaData;
+          console.log('📦 Has PSA data:', hasPSAData, (card.result as any)?.psaData);
+          
           // Upload front and back images
           let frontUrl = null;
           let backUrl = null;
@@ -135,7 +139,32 @@ export function useDualScanUpload() {
           if (frontUrl) assetImages.push(frontUrl);
           if (backUrl) assetImages.push(backUrl);
 
-          // Determine if card is graded based on meaningful grade string
+          // PSA FAST PATH: Use complete PSA data if available
+          if (hasPSAData) {
+            const psaData = (card.result as any).psaData;
+            console.log('🚀 Using PSA API data for asset creation:', psaData);
+            
+            return {
+              type: 'graded',
+              grader: 'PSA',
+              title: psaData.title,
+              playerName: psaData.playerName,
+              setName: psaData.setName,
+              year: psaData.year,
+              cardNumber: psaData.cardNumber,
+              variant: psaData.variant || null,
+              grade: psaData.grade,
+              certNumber: psaData.certNumber,
+              category: psaData.category,
+              ownershipStatus: 'own',
+              assetImages: assetImages.length > 0 ? assetImages : null,
+              // PSA images as fallback if camera images fail
+              psaImageFrontUrl: psaData.psaImageFrontUrl || null,
+              psaImageBackUrl: psaData.psaImageBackUrl || null,
+            };
+          }
+
+          // Standard AI extraction path (non-PSA or raw cards)
           const isGraded = isMeaningfulGrade(card.result!.fields.grade);
           const cardType = isGraded ? 'graded' : 'raw';
           const normalizedGrade = isGraded ? String(card.result!.fields.grade) : null;

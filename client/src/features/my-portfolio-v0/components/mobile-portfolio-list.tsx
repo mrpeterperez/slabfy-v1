@@ -27,12 +27,12 @@ export function MobilePortfolioList({ assets, onViewAsset }: MobilePortfolioList
       if (bucket) bucket.push(a); else map.set(key, [a]);
     }
     
-    // Sort each group so assets with PSA images come first
+    // Sort each group so assets with images (assetImages or PSA images) come first
     const groups = Array.from(map.values());
     groups.forEach(group => {
       group.sort((a, b) => {
-        const aHasImage = !!(a.psaImageFrontUrl && a.psaImageFrontUrl.trim());
-        const bHasImage = !!(b.psaImageFrontUrl && b.psaImageFrontUrl.trim());
+        const aHasImage = !!((a as any).assetImages?.[0] || (a.psaImageFrontUrl && a.psaImageFrontUrl.trim()));
+        const bHasImage = !!((b as any).assetImages?.[0] || (b.psaImageFrontUrl && b.psaImageFrontUrl.trim()));
         if (aHasImage && !bHasImage) return -1;
         if (!aHasImage && bHasImage) return 1;
         return 0;

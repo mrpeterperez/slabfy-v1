@@ -70,7 +70,7 @@ export const GroupedGroupRow: React.FC<GroupRowProps> = ({ assets, show, marketD
         <td className="px-3 py-3">
           <div className="flex items-center gap-3 w-full text-left select-none">
             <div className="h-auto w-14 bg-muted rounded overflow-hidden flex items-center justify-center text-[10px] text-muted-foreground group-hover:ring-2 group-hover:ring-primary">
-              {rep.psaImageFrontUrl ? <img src={rep.psaImageFrontUrl} alt="card" className="object-cover w-full h-full" /> : 'IMG'}
+              {(rep as any).assetImages?.[0] || rep.psaImageFrontUrl ? <img src={(rep as any).assetImages?.[0] || rep.psaImageFrontUrl} alt="card" className="object-cover w-full h-full" /> : 'IMG'}
             </div>
             <div className="leading-tight max-w-[22ch]">
               <AssetSummary

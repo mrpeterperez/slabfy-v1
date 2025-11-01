@@ -43,8 +43,8 @@ export const GroupedTableRow = memo<RowProps>(function GroupedTableRow({ asset, 
           >
             {indent > 0 && <span style={{ width: indent }} className="flex-shrink-0" />}
             <div className={`h-auto flex-shrink-0 bg-muted rounded overflow-hidden flex items-center justify-center group-hover:ring-2 group-hover:ring-primary relative ${indent > 0 ? 'w-12' : 'w-14'}`}>
-              <img src={asset.psaImageFrontUrl || PLACEHOLDER_IMAGE_URL} alt="card" className="w-full h-full object-cover" />
-              {!asset.psaImageFrontUrl && (
+              <img src={(asset as any).assetImages?.[0] || asset.psaImageFrontUrl || PLACEHOLDER_IMAGE_URL} alt="card" className="w-full h-full object-cover" />
+              {!(asset as any).assetImages?.[0] && !asset.psaImageFrontUrl && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className="absolute bottom-1 right-1 h-3 w-3 bg-muted-foreground/80 rounded-full flex items-center justify-center cursor-help">
@@ -52,7 +52,7 @@ export const GroupedTableRow = memo<RowProps>(function GroupedTableRow({ asset, 
                     </div>
                   </TooltipTrigger>
                   <TooltipContent side="top">
-                    <p className="text-xs">No image available from PSA</p>
+                    <p className="text-xs">No image available</p>
                   </TooltipContent>
                 </Tooltip>
               )}

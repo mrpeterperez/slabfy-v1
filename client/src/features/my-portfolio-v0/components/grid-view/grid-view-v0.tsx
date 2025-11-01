@@ -72,7 +72,7 @@ const GridAssetCard = ({
             </div>
           )}
           <img
-            src={asset.psaImageFrontUrl || PLACEHOLDER_IMAGE_URL}
+            src={(asset as any).assetImages?.[0] || asset.psaImageFrontUrl || PLACEHOLDER_IMAGE_URL}
             alt={asset.title || 'Card'}
             className="w-full h-auto object-cover rounded-lg cursor-pointer"
             onClick={handleAssetClick}

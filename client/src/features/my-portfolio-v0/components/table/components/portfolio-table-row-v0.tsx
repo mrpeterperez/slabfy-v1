@@ -88,9 +88,9 @@ export const PortfolioTableRowV0 = memo(function PortfolioTableRowV0({
       {/* Asset */}
       <td className="p-4">
         <div className="flex items-center gap-3">
-          {asset.psaImageFrontUrl && (
+          {((asset as any).assetImages?.[0] || asset.psaImageFrontUrl) && (
             <img
-              src={asset.psaImageFrontUrl}
+              src={(asset as any).assetImages?.[0] || asset.psaImageFrontUrl}
               alt={asset.title || 'Card'}
               className="w-12 h-16 flex-shrink-0 object-cover rounded border"
             />
